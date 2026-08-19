@@ -5,15 +5,36 @@ namespace App\Services;
 use App\Models\Appointment;
 use App\Models\ClinicalEncounter;
 use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class ClinicalEncounterService
 {
-    public function open(Patient $patient, array $data): ClinicalEncounter
+    public function open(Appointment $appointment, User $clinician): ClinicalEncounter
     {
-        if (! $patient->isActive()) {
+        $patient = $appointment->patient;
+
+        if (! $patient || ! $patient->isActive()) {
             throw ValidationException::withMessages([
                 'patient_id' => 'Only active patients can have clinical encounters opened.',
+            ]);
+        }
+
+        if (! $clinician->isStaff() || ! $clinician->isActive()) {
+            throw ValidationException::withMessages([
+                'clinician_id' => 'Only active staff members can open clinical encounters.',
+            ]);
+        }
+
+        if ($appointment->provider_id !== null && $appointment->provider_id !== $clinician->id) {
+            throw ValidationException::withMessages([
+                'clinician_id' => 'The selected clinician is not the provider assigned to this appointment.',
+            ]);
+        }
+
+        if (! $appointment->isCheckedIn()) {
+            throw ValidationException::withMessages([
+                'appointment_id' => 'Only checked-in appointments can open clinical encounters.',
             ]);
         }
 
@@ -23,31 +44,18 @@ class ClinicalEncounterService
             ]);
         }
 
-        $appointment = null;
-        if (! empty($data['appointment_id'])) {
-            $appointment = Appointment::query()->findOrFail($data['appointment_id']);
-
-            if ($appointment->patient_id !== $patient->id) {
-                throw ValidationException::withMessages([
-                    'appointment_id' => 'The selected appointment does not belong to this patient.',
-                ]);
-            }
-
-            if ($appointment->status === Appointment::STATUS_CANCELLED) {
-                throw ValidationException::withMessages([
-                    'appointment_id' => 'A cancelled appointment cannot be used to open an encounter.',
-                ]);
-            }
-        }
-
-        $data['facility_id'] = $patient->facility_id;
-        $data['patient_id'] = $patient->id;
-        $data['appointment_id'] = $appointment?->id;
-        $data['encounter_number'] ??= $this->nextEncounterNumber();
-        $data['status'] ??= ClinicalEncounter::STATUS_OPEN;
-        $data['started_at'] ??= now();
-
-        return ClinicalEncounter::create($data);
+        return ClinicalEncounter::create([
+            'facility_id' => $patient->facility_id,
+            'department_id' => $appointment->department_id,
+            'service_point_id' => $appointment->service_point_id,
+            'patient_id' => $patient->id,
+            'appointment_id' => $appointment->id,
+            'clinician_id' => $clinician->id,
+            'encounter_number' => $this->nextEncounterNumber(),
+            'type' => $appointment->reason ? ClinicalEncounter::TYPE_OUTPATIENT : ClinicalEncounter::TYPE_OUTPATIENT,
+            'status' => ClinicalEncounter::STATUS_OPEN,
+            'started_at' => now(),
+        ]);
     }
 
     public function close(ClinicalEncounter $encounter, ?string $summary = null): ClinicalEncounter
