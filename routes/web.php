@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientPortalController;
@@ -60,6 +61,23 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/{appointment}/check-in', [AppointmentController::class, 'checkIn'])->whereNumber('appointment')->name('check-in');
         Route::post('/{appointment}/complete', [AppointmentController::class, 'complete'])->whereNumber('appointment')->name('complete');
         Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->whereNumber('appointment')->name('cancel');
+    });
+
+    Route::middleware('permission:clinical.encounters.view')->prefix('encounters')->name('encounters.')->group(function () {
+        Route::get('/', [ClinicalEncounterController::class, 'index'])->name('index');
+        Route::get('/create', [ClinicalEncounterController::class, 'create'])
+            ->middleware('permission:clinical.encounters.create')
+            ->name('create');
+        Route::get('/{encounter}', [ClinicalEncounterController::class, 'show'])->whereNumber('encounter')->name('show');
+        Route::post('/{encounter}/close', [ClinicalEncounterController::class, 'close'])
+            ->middleware('permission:clinical.encounters.update')
+            ->whereNumber('encounter')->name('close');
+        Route::post('/{encounter}/cancel', [ClinicalEncounterController::class, 'cancel'])
+            ->middleware('permission:clinical.encounters.update')
+            ->whereNumber('encounter')->name('cancel');
+        Route::post('/', [ClinicalEncounterController::class, 'store'])
+            ->middleware('permission:clinical.encounters.create')
+            ->name('store');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
