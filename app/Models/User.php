@@ -39,6 +39,11 @@ class User extends Authenticatable
         return $this->hasOne(StaffProfile::class);
     }
 
+    public function patientProfile(): HasOne
+    {
+        return $this->hasOne(Patient::class);
+    }
+
     public function invitationsReceived(): HasMany
     {
         return $this->hasMany(EmployeeInvitation::class, 'user_id');
