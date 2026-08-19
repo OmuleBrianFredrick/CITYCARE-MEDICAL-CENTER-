@@ -17,14 +17,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
-    })->name('dashboard');
+    })->middleware('permission:dashboard.view')->name('dashboard');
 
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
-
-    Route::get('/access-check', function () {
-        return response()->json([
-            'user' => request()->user()->only(['id', 'name', 'email', 'user_type', 'is_active']),
-            'roles' => request()->user()->roles()->pluck('slug'),
-        ]);
-    })->middleware('permission:dashboard.view')->name('access-check');
 });
