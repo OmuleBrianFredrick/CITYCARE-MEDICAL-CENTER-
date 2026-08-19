@@ -59,28 +59,31 @@ class OrganizationControllerTest extends TestCase
 
         $facility = Facility::firstOrFail();
 
+        // The organization seeder already provisions the core OPD department.
+        // Use a new department code here so this controller test verifies actual
+        // creation rather than colliding with seeded production configuration.
         $this->actingAs($admin)
             ->post(route('organization.departments.store'), [
-                'name' => 'Outpatient Department',
-                'code' => 'OPD',
+                'name' => 'Radiology Department',
+                'code' => 'RAD',
             ])
             ->assertRedirect();
 
-        $department = Department::where('code', 'OPD')->firstOrFail();
+        $department = Department::where('code', 'RAD')->firstOrFail();
         $this->assertSame($facility->id, $department->facility_id);
 
         $this->actingAs($admin)
             ->post(route('organization.service-points.store'), [
                 'department_id' => $department->id,
-                'name' => 'General Consultation',
-                'code' => 'OPD-GENERAL',
-                'type' => 'clinic',
+                'name' => 'General Radiology',
+                'code' => 'RAD-GENERAL',
+                'type' => 'radiology',
             ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('service_points', [
             'department_id' => $department->id,
-            'code' => 'OPD-GENERAL',
+            'code' => 'RAD-GENERAL',
         ]);
     }
 
