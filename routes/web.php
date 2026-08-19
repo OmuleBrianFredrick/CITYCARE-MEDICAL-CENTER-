@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -20,4 +21,25 @@ Route::middleware(['auth', 'active'])->group(function () {
     })->middleware('permission:dashboard.view')->name('dashboard');
 
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+
+    Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
+        Route::get('/', [OrganizationController::class, 'index'])->name('index');
+
+        Route::put('/facility', [OrganizationController::class, 'updateFacility'])
+            ->middleware('permission:organization.manage')
+            ->name('facility.update');
+
+        Route::post('/departments', [OrganizationController::class, 'storeDepartment'])
+            ->middleware('permission:organization.manage')
+            ->name('departments.store');
+
+        Route::post('/service-points', [OrganizationController::class, 'storeServicePoint'])
+            ->middleware('permission:organization.manage')
+            ->name('service-points.store');
+
+        Route::put('/settings/{key}', [OrganizationController::class, 'updateSetting'])
+            ->middleware('permission:organization.manage')
+            ->where('key', '.*')
+            ->name('settings.update');
+    });
 });
