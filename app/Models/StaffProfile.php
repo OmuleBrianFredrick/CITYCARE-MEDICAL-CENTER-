@@ -12,6 +12,8 @@ class StaffProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'department_id',
+        'service_point_id',
         'employee_number',
         'job_title',
         'employment_status',
@@ -29,5 +31,15 @@ class StaffProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function servicePoint(): BelongsTo
+    {
+        return $this->belongsTo(ServicePoint::class);
     }
 }
