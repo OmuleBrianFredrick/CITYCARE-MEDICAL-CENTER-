@@ -16,72 +16,32 @@ use Illuminate\Notifications\Notifiable;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     protected function casts(): array
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_active' => 'boolean',
-            'last_login_at' => 'datetime',
-        ];
+        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'is_active' => 'boolean', 'last_login_at' => 'datetime'];
     }
 
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class);
-    }
-
-    public function staffProfile(): HasOne
-    {
-        return $this->hasOne(StaffProfile::class);
-    }
-
-    public function patientProfile(): HasOne
-    {
-        return $this->hasOne(Patient::class);
-    }
-
-    public function invitationsReceived(): HasMany
-    {
-        return $this->hasMany(EmployeeInvitation::class, 'user_id');
-    }
-
-    public function invitationsSent(): HasMany
-    {
-        return $this->hasMany(EmployeeInvitation::class, 'invited_by');
-    }
+    public function roles(): BelongsToMany { return $this->belongsToMany(Role::class); }
+    public function staffProfile(): HasOne { return $this->hasOne(StaffProfile::class); }
+    public function patientProfile(): HasOne { return $this->hasOne(Patient::class); }
+    public function invitationsReceived(): HasMany { return $this->hasMany(EmployeeInvitation::class, 'user_id'); }
+    public function invitationsSent(): HasMany { return $this->hasMany(EmployeeInvitation::class, 'invited_by'); }
+    public function appointmentsAsProvider(): HasMany { return $this->hasMany(Appointment::class, 'provider_id'); }
+    public function appointmentsCreated(): HasMany { return $this->hasMany(Appointment::class, 'created_by'); }
 
     public function hasRole(string|array $roles): bool
     {
-        $roles = (array) $roles;
-
-        return $this->roles()
-            ->whereIn('slug', $roles)
-            ->exists();
+        return $this->roles()->whereIn('slug', (array) $roles)->exists();
     }
 
     public function hasPermissionTo(string $permission): bool
     {
-        return $this->roles()
-            ->whereHas('permissions', fn ($query) => $query->where('slug', $permission))
-            ->exists();
+        return $this->roles()->whereHas('permissions', fn ($query) => $query->where('slug', $permission))->exists();
     }
 
-    public function isStaff(): bool
-    {
-        return $this->user_type === 'staff';
-    }
-
-    public function isPatient(): bool
-    {
-        return $this->user_type === 'patient';
-    }
-
-    public function isActive(): bool
-    {
-        return $this->is_active === true;
-    }
+    public function isStaff(): bool { return $this->user_type === 'staff'; }
+    public function isPatient(): bool { return $this->user_type === 'patient'; }
+    public function isActive(): bool { return $this->is_active === true; }
 }
