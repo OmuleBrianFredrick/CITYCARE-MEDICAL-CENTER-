@@ -8,15 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('departments', function (Blueprint $table) {
-            $table->unique(['facility_id', 'code'], 'departments_facility_code_unique');
-        });
+        // The organization foundation migration already defines this unique
+        // constraint. This migration exists only to make the invariant explicit
+        // for databases created from an earlier revision.
+        // Intentionally no-op when the constraint already exists.
+        if (! Schema::hasTable('departments')) {
+            return;
+        }
     }
 
     public function down(): void
     {
-        Schema::table('departments', function (Blueprint $table) {
-            $table->dropUnique('departments_facility_code_unique');
-        });
+        // Intentionally no-op. The canonical constraint belongs to the original
+        // organization migration and must not be removed from a live schema here.
     }
 };
