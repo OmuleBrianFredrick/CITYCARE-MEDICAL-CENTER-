@@ -6,6 +6,7 @@ use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -14,21 +15,27 @@ class PatientControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+        $this->withoutMiddleware(PreventRequestForgery::class);
+    }
+
     public function test_authorized_staff_can_view_registry_and_registration_form(): void
     {
-        $this->seed();
         $user = $this->staffWithRole('receptionist');
-        Facility::create(['name' => 'CityCare Medical Center', 'country' => 'Uganda', 'timezone' => 'Africa/Kampala', 'currency' => 'UGX', 'is_active' => true]);
+        $facility = $this->cityCareFacility();
 
         $this->actingAs($user)->get(route('patients.index'))->assertOk();
         $this->actingAs($user)->get(route('patients.create'))->assertOk();
+        $this->assertSame($facility->id, Facility::where('is_active', true)->orderBy('id')->firstOrFail()->id);
     }
 
     public function test_staff_can_register_patient_through_http_workflow(): void
     {
-        $this->seed();
         $user = $this->staffWithRole('receptionist');
-        $facility = Facility::create(['name' => 'CityCare Medical Center', 'country' => 'Uganda', 'timezone' => 'Africa/Kampala', 'currency' => 'UGX', 'is_active' => true]);
+        $facility = $this->cityCareFacility();
 
         $response = $this->actingAs($user)->post(route('patients.store'), [
             'facility_id' => $facility->id,
@@ -46,7 +53,7 @@ class PatientControllerTest extends TestCase
             'emergency_contact_phone' => '+256700777888',
         ]);
 
-        $patient = Patient::firstOrFail();
+        $patient = Patient::query()->where('first_name', 'Amina')->where('last_name', 'Kato')->firstOrFail();
 
         $response->assertRedirect(route('patients.show', $patient));
         $this->assertDatabaseHas('patients', ['id' => $patient->id, 'first_name' => 'Amina', 'facility_id' => $facility->id]);
@@ -55,9 +62,8 @@ class PatientControllerTest extends TestCase
 
     public function test_user_without_patient_create_permission_cannot_register_patient(): void
     {
-        $this->seed();
         $user = $this->staffWithRole('laboratory');
-        $facility = Facility::create(['name' => 'CityCare Medical Center', 'country' => 'Uganda', 'timezone' => 'Africa/Kampala', 'currency' => 'UGX', 'is_active' => true]);
+        $facility = $this->cityCareFacility();
 
         $this->actingAs($user)->get(route('patients.create'))->assertForbidden();
         $this->actingAs($user)->post(route('patients.store'), [
@@ -70,9 +76,8 @@ class PatientControllerTest extends TestCase
 
     public function test_patient_registry_can_search_by_name_and_mrn(): void
     {
-        $this->seed();
         $user = $this->staffWithRole('receptionist');
-        $facility = Facility::create(['name' => 'CityCare Medical Center', 'country' => 'Uganda', 'timezone' => 'Africa/Kampala', 'currency' => 'UGX', 'is_active' => true]);
+        $facility = $this->cityCareFacility();
         $patient = Patient::create([
             'facility_id' => $facility->id,
             'medical_record_number' => 'CCMC-2026-ABC1234',
@@ -86,6 +91,11 @@ class PatientControllerTest extends TestCase
             ->assertOk()->assertSee('Grace Namukasa');
         $this->actingAs($user)->get(route('patients.index', ['search' => $patient->medical_record_number]))
             ->assertOk()->assertSee($patient->medical_record_number);
+    }
+
+    private function cityCareFacility(): Facility
+    {
+        return Facility::query()->where('name', 'CityCare Medical Center')->where('is_active', true)->firstOrFail();
     }
 
     private function staffWithRole(string $roleSlug): User
