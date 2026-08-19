@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
@@ -50,6 +51,15 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/patients/{patient}/portal/disable', [PatientPortalController::class, 'disable'])
             ->whereNumber('patient')
             ->name('patients.portal.disable');
+    });
+
+    Route::middleware('permission:appointments.manage')->prefix('appointments')->name('appointments.')->group(function () {
+        Route::get('/', [AppointmentController::class, 'index'])->name('index');
+        Route::get('/create', [AppointmentController::class, 'create'])->name('create');
+        Route::post('/', [AppointmentController::class, 'store'])->name('store');
+        Route::post('/{appointment}/check-in', [AppointmentController::class, 'checkIn'])->whereNumber('appointment')->name('check-in');
+        Route::post('/{appointment}/complete', [AppointmentController::class, 'complete'])->whereNumber('appointment')->name('complete');
+        Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->whereNumber('appointment')->name('cancel');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
