@@ -17,14 +17,19 @@ class AppointmentFactory extends Factory
 
     public function definition(): array
     {
+        $facility = Facility::query()->where('is_active', true)->orderBy('id')->first()
+            ?? Facility::factory()->create();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
+        $patient = Patient::factory()->create(['facility_id' => $facility->id]);
         $start = fake()->dateTimeBetween('+1 day', '+14 days');
         $end = (clone $start)->modify('+30 minutes');
 
         return [
-            'facility_id' => Facility::factory(),
-            'department_id' => Department::factory(),
-            'service_point_id' => ServicePoint::factory(),
-            'patient_id' => Patient::factory(),
+            'facility_id' => $facility->id,
+            'department_id' => $department->id,
+            'service_point_id' => $servicePoint->id,
+            'patient_id' => $patient->id,
             'provider_id' => User::factory()->state(['user_type' => 'staff', 'is_active' => true]),
             'appointment_number' => 'APT-'.fake()->unique()->numerify('########').'-'.fake()->unique()->lexify('????'),
             'scheduled_start' => $start,
