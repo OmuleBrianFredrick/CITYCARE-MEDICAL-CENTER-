@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -16,6 +17,7 @@ class AuthenticationTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $this->withoutMiddleware(ValidateCsrfToken::class);
     }
 
     public function test_active_staff_can_sign_in_and_last_login_is_recorded(): void
