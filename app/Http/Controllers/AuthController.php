@@ -47,6 +47,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         if (! $user->isActive()) {
+            RateLimiter::clear($key);
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
