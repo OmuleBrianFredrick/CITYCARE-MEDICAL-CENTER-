@@ -41,7 +41,7 @@ class AuthenticationTest extends TestCase
 
     public function test_inactive_account_cannot_sign_in(): void
     {
-        $user = User::factory()->create([
+        User::factory()->create([
             'email' => 'inactive@citycare.test',
             'password' => Hash::make('SecurePass123!'),
             'user_type' => 'staff',
@@ -107,7 +107,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('access-check'))
+            ->get(route('dashboard'))
             ->assertForbidden();
     }
 
