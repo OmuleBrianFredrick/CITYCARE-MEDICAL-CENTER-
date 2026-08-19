@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\PatientController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,6 +22,16 @@ Route::middleware(['auth', 'active'])->group(function () {
     })->middleware('permission:dashboard.view')->name('dashboard');
 
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+
+    Route::middleware('permission:patients.view')->group(function () {
+        Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
+        Route::get('/patients/{patient}', [PatientController::class, 'show'])->name('patients.show');
+    });
+
+    Route::middleware('permission:patients.create')->group(function () {
+        Route::get('/patients/create', [PatientController::class, 'create'])->name('patients.create');
+        Route::post('/patients', [PatientController::class, 'store'])->name('patients.store');
+    });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
         Route::get('/', [OrganizationController::class, 'index'])->name('index');
