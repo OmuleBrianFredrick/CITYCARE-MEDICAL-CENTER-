@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -87,19 +87,20 @@ class AuthenticationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->post(route('login.store'), [
-            'email' => 'throttle@citycare.test',
-            'password' => 'WrongPassword!',
-        ])->assertRedirect(route('login'));
-
-        RateLimiter::clear('throttle@citycare.test|127.0.0.1');
+        $key = 'throttle@citycare.test|127.0.0.1';
+        RateLimiter::clear($key);
 
         foreach (range(1, 4) as $attempt) {
-            $this->post(route('login.store'), [
+            $response = $this->post(route('login.store'), [
                 'email' => 'throttle@citycare.test',
                 'password' => 'WrongPassword!',
-            ])->assertRedirect(route('login'));
+            ]);
+
+            $response->assertRedirect(route('login'));
+            $response->assertSessionHasErrors('email');
         }
+
+        $this->assertSame(4, RateLimiter::attempts($key));
 
         $this->post(route('login.store'), [
             'email' => 'throttle@citycare.test',
@@ -107,6 +108,7 @@ class AuthenticationTest extends TestCase
         ])->assertRedirect(route('dashboard'));
 
         $this->assertAuthenticatedAs($user);
+        $this->assertSame(0, RateLimiter::attempts($key));
     }
 
     public function test_permission_middleware_denies_unauthorized_user(): void
