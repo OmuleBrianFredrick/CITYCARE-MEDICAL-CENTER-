@@ -13,9 +13,9 @@ class FacilityFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => 'CityCare Medical Center',
-            'legal_name' => 'CityCare Medical Center Limited',
-            'registration_number' => 'CCMC-'.fake()->unique()->numerify('######'),
+            'name' => fake()->unique()->company().' Medical Center',
+            'legal_name' => fake()->optional()->company().' Limited',
+            'registration_number' => fake()->unique()->bothify('CCMC-########'),
             'phone' => fake()->unique()->numerify('07########'),
             'email' => fake()->unique()->safeEmail(),
             'website' => 'https://citycare.test',
