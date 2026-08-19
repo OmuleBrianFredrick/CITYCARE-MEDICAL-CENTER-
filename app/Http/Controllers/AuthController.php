@@ -7,7 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -24,27 +24,17 @@ class AuthController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        $key = Str::transliterate(Str::lower($request->string('email')).'|'.$request->ip());
-
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-
-            throw ValidationException::withMessages([
-                'email' => "Too many sign-in attempts. Please try again in {$seconds} seconds.",
-            ]);
-        }
-
         $credentials = $request->credentials();
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            RateLimiter::increment($key, 60);
-
             throw ValidationException::withMessages([
                 'email' => 'The provided credentials do not match our records.',
             ]);
         }
 
         $request->session()->regenerate();
+
+        $key = strtolower(trim($credentials['email'])).'|'.$request->ip();
         RateLimiter::clear($key);
 
         $user = $request->user();
