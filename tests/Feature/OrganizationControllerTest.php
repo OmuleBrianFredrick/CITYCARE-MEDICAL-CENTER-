@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,6 +18,7 @@ class OrganizationControllerTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $this->withoutMiddleware(PreventRequestForgery::class);
     }
 
     public function test_administrator_can_view_organization_workspace(): void
