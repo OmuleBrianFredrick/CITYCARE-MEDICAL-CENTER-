@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class ClinicalEncounterService
 {
-    public function open(Appointment $appointment, User $clinician): ClinicalEncounter
+    public function open(Appointment $appointment, User $clinician, array $data = []): ClinicalEncounter
     {
         $patient = $appointment->patient;
 
@@ -52,9 +52,10 @@ class ClinicalEncounterService
             'appointment_id' => $appointment->id,
             'clinician_id' => $clinician->id,
             'encounter_number' => $this->nextEncounterNumber(),
-            'type' => $appointment->reason ? ClinicalEncounter::TYPE_OUTPATIENT : ClinicalEncounter::TYPE_OUTPATIENT,
+            'type' => $data['type'] ?? ClinicalEncounter::TYPE_OUTPATIENT,
             'status' => ClinicalEncounter::STATUS_OPEN,
             'started_at' => now(),
+            'summary' => $data['summary'] ?? null,
         ]);
     }
 
