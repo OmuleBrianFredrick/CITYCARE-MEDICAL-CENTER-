@@ -19,7 +19,7 @@ class ClinicalEncounter extends Model
     public const TYPE_EMERGENCY = 'emergency';
 
     protected $fillable = [
-        'facility_id', 'service_point_id', 'patient_id', 'appointment_id', 'clinician_id',
+        'facility_id', 'department_id', 'service_point_id', 'patient_id', 'appointment_id', 'clinician_id',
         'encounter_number', 'type', 'status', 'started_at', 'closed_at', 'summary',
     ];
 
@@ -32,6 +32,7 @@ class ClinicalEncounter extends Model
     }
 
     public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
+    public function department(): BelongsTo { return $this->belongsTo(Department::class); }
     public function servicePoint(): BelongsTo { return $this->belongsTo(ServicePoint::class); }
     public function patient(): BelongsTo { return $this->belongsTo(Patient::class); }
     public function appointment(): BelongsTo { return $this->belongsTo(Appointment::class); }
