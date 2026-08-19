@@ -25,7 +25,9 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::middleware('permission:patients.view')->group(function () {
         Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
-        Route::get('/patients/{patient}', [PatientController::class, 'show'])->name('patients.show');
+        Route::get('/patients/{patient}', [PatientController::class, 'show'])
+            ->whereNumber('patient')
+            ->name('patients.show');
     });
 
     Route::middleware('permission:patients.create')->group(function () {
