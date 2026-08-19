@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientPortalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,11 +29,27 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/patients/{patient}', [PatientController::class, 'show'])
             ->whereNumber('patient')
             ->name('patients.show');
+        Route::get('/patients/{patient}/portal', [PatientPortalController::class, 'show'])
+            ->whereNumber('patient')
+            ->middleware('permission:patients.update')
+            ->name('patients.portal.show');
     });
 
     Route::middleware('permission:patients.create')->group(function () {
         Route::get('/patients/create', [PatientController::class, 'create'])->name('patients.create');
         Route::post('/patients', [PatientController::class, 'store'])->name('patients.store');
+    });
+
+    Route::middleware('permission:patients.update')->group(function () {
+        Route::post('/patients/{patient}/portal/provision', [PatientPortalController::class, 'provision'])
+            ->whereNumber('patient')
+            ->name('patients.portal.provision');
+        Route::post('/patients/{patient}/portal/activate', [PatientPortalController::class, 'activate'])
+            ->whereNumber('patient')
+            ->name('patients.portal.activate');
+        Route::post('/patients/{patient}/portal/disable', [PatientPortalController::class, 'disable'])
+            ->whereNumber('patient')
+            ->name('patients.portal.disable');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
