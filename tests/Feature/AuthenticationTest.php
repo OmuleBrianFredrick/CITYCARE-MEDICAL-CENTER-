@@ -91,7 +91,7 @@ class AuthenticationTest extends TestCase
         RateLimiter::clear($key);
 
         foreach (range(1, 4) as $attempt) {
-            $response = $this->post(route('login.store'), [
+            $response = $this->from(route('login'))->post(route('login.store'), [
                 'email' => 'throttle@citycare.test',
                 'password' => 'WrongPassword!',
             ]);
