@@ -10,7 +10,7 @@ class StoreAppointmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->canPermission('appointments.manage') === true;
+        return $this->user()?->hasPermissionTo('appointments.manage') === true;
     }
 
     public function rules(): array
