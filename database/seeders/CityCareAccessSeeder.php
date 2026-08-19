@@ -12,6 +12,8 @@ class CityCareAccessSeeder extends Seeder
     {
         $permissions = [
             ['name' => 'View dashboard', 'slug' => 'dashboard.view', 'group' => 'dashboard'],
+            ['name' => 'View organization', 'slug' => 'organization.view', 'group' => 'administration'],
+            ['name' => 'Manage organization', 'slug' => 'organization.manage', 'group' => 'administration'],
             ['name' => 'View patients', 'slug' => 'patients.view', 'group' => 'patients'],
             ['name' => 'Create patients', 'slug' => 'patients.create', 'group' => 'patients'],
             ['name' => 'Update patients', 'slug' => 'patients.update', 'group' => 'patients'],
@@ -48,7 +50,8 @@ class CityCareAccessSeeder extends Seeder
                 'name' => 'Administrator',
                 'description' => 'Operational management across the medical center.',
                 'permissions' => [
-                    'dashboard.view', 'patients.view', 'patients.create', 'patients.update',
+                    'dashboard.view', 'organization.view', 'organization.manage',
+                    'patients.view', 'patients.create', 'patients.update',
                     'appointments.manage', 'reception.manage', 'clinical.encounters.view',
                     'laboratory.manage', 'pharmacy.manage', 'inventory.view', 'inventory.manage',
                     'billing.manage', 'reports.view', 'staff.manage', 'audit.view',
