@@ -1,49 +1,25 @@
-@extends('layout.app')
-
-@section('title','Patient Portal Access')
-@section('content')
-<div style="max-width:1100px;margin:0 auto;padding:34px 22px">
-    <div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap">
-        <div>
-            <div style="color:#2563eb;font-size:.74rem;font-weight:900;letter-spacing:.14em">PATIENT MANAGEMENT · PORTAL ACCESS</div>
-            <h1 style="margin:6px 0;font-size:2.4rem;letter-spacing:-.04em">{{ $patient->full_name }}</h1>
-            <p style="color:#627d98">MRN {{ $patient->medical_record_number }} · Manage this patient's optional portal access.</p>
-        </div>
-        <a href="{{ route('patients.show',$patient) }}" style="text-decoration:none;font-weight:800;color:#2563eb">← Patient profile</a>
-    </div>
-
-    @if(session('status'))<div style="padding:12px 14px;border:1px solid #bbf7d0;background:#ecfdf3;color:#166534;border-radius:12px;margin-bottom:16px">{{ session('status') }}</div>@endif
-    @if($errors->any())<div style="padding:12px 14px;border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:12px;margin-bottom:16px">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-
-    <div style="background:#fff;border:1px solid #d9e2ec;border-radius:20px;padding:22px;box-shadow:0 8px 28px rgba(16,42,67,.05)">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px">
-            <div><small style="color:#627d98">Patient email</small><div style="font-weight:800;margin-top:5px">{{ $patient->email ?: 'Not recorded' }}</div></div>
-            <div><small style="color:#627d98">Portal account</small><div style="font-weight:800;margin-top:5px">{{ $patient->user ? 'Linked' : 'Not provisioned' }}</div></div>
-            <div><small style="color:#627d98">Portal status</small><div style="font-weight:800;margin-top:5px">
-                @if(!$patient->user) Not provisioned
-                @elseif($patient->user->is_active) Active
-                @else Pending / Disabled
-                @endif
-            </div></div>
-        </div>
-
-        @if(!$patient->user)
-            <form method="POST" action="{{ route('patients.portal.provision',$patient) }}">
-                @csrf
-                <button style="border:0;border-radius:11px;padding:12px 16px;background:#2563eb;color:#fff;font-weight:850;cursor:pointer">Provision patient portal</button>
-            </form>
-        @elseif(!$patient->user->is_active)
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <form method="POST" action="{{ route('patients.portal.activate',$patient) }}">@csrf<button style="border:0;border-radius:11px;padding:12px 16px;background:#15803d;color:#fff;font-weight:850;cursor:pointer">Activate portal</button></form>
-                <form method="POST" action="{{ route('patients.portal.disable',$patient) }}">@csrf<button style="border:0;border-radius:11px;padding:12px 16px;background:#eef2f7;color:#102a43;font-weight:850;cursor:pointer">Keep disabled</button></form>
-            </div>
-        @else
-            <form method="POST" action="{{ route('patients.portal.disable',$patient) }}">@csrf<button style="border:0;border-radius:11px;padding:12px 16px;background:#b91c1c;color:#fff;font-weight:850;cursor:pointer">Disable portal access</button></form>
-        @endif
-
-        <div style="margin-top:22px;padding:14px;border-radius:12px;background:#f8fafc;color:#627d98;line-height:1.55">
-            Patient registration and portal access remain separate. Provisioning a portal account does not alter the medical record and does not activate access until the account is explicitly activated.
-        </div>
-    </div>
-</div>
-@endsection
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Portal Access · CityCare Medical Center</title>
+<style>
+:root{--navy:#082f49;--blue:#2563eb;--cream:#f7fafc;--ink:#102a43;--muted:#627d98;--line:#d9e2ec;--green:#15803d;--red:#b91c1c}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui;color:var(--ink);background:var(--cream)}.shell{min-height:100vh;display:grid;grid-template-columns:240px 1fr}aside{padding:28px 20px;background:linear-gradient(180deg,var(--navy),#0c4a6e);color:#fff}.brand{display:flex;gap:12px;align-items:center;margin-bottom:42px}.mark{width:42px;height:42px;border-radius:12px;background:#fff;color:var(--navy);display:grid;place-items:center;font-weight:900}.brand small{display:block;color:#bae6fd}nav{display:grid;gap:8px}nav a{color:#e0f2fe;text-decoration:none;padding:11px 12px;border-radius:10px}nav a:hover,nav a.active{background:rgba(255,255,255,.1);color:#fff}.logout{margin-top:35px;background:none;border:0;color:#fff;font-weight:800;cursor:pointer}main{padding:34px clamp(22px,4vw,56px);max-width:1450px;width:100%}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:24px}.eyebrow{color:var(--blue);font-size:.74rem;font-weight:900;letter-spacing:.14em}h1{margin:6px 0;font-size:clamp(2rem,4vw,2.7rem);letter-spacing:-.05em}.muted{color:var(--muted);line-height:1.5}.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 8px 28px rgba(16,42,67,.05);margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.item small{color:var(--muted)}.item strong{display:block;margin-top:5px}.badge{display:inline-block;padding:7px 10px;border-radius:999px;background:#ecfdf3;color:var(--green);font-size:.72rem;font-weight:900}.badge.pending{background:#fff7ed;color:#9a3412}.badge.off{background:#fee2e2;color:var(--red)}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:12px 16px;font-weight:850;cursor:pointer}.primary{background:var(--blue);color:#fff}.success{background:var(--green);color:#fff}.danger{background:var(--red);color:#fff}.secondary{background:#eef2f7;color:var(--ink)}.note{margin-top:22px;padding:14px;border-radius:12px;background:#f8fafc;color:var(--muted);line-height:1.55}.errors,.status{padding:12px 14px;border-radius:12px;margin-bottom:16px}.errors{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412}.status{border:1px solid #bbf7d0;background:#ecfdf3;color:#166534}@media(max-width:850px){.shell{grid-template-columns:1fr}aside{display:none}.grid{grid-template-columns:1fr 1fr}.top{flex-direction:column}}@media(max-width:540px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="shell"><aside><div class="brand"><div class="mark">CC</div><div><strong>CityCare</strong><small>Medical Center</small></div></div><nav><a href="{{ route('dashboard') }}">Dashboard</a><a class="active" href="{{ route('patients.index') }}">Patients</a><a href="{{ route('organization.index') }}">Organization</a></nav><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">Sign out</button></form></aside><main>
+<div class="top"><div><div class="eyebrow">PATIENT MANAGEMENT · PORTAL ACCESS</div><h1>{{ $patient->full_name }}</h1><p class="muted">MRN {{ $patient->medical_record_number }} · Manage this patient's optional portal access.</p></div><a href="{{ route('patients.show',$patient) }}" style="text-decoration:none;font-weight:800;color:var(--blue)">← Patient profile</a></div>
+@if(session('status'))<div class="status">{{ session('status') }}</div>@endif
+@if($errors->any())<div class="errors">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+<div class="panel"><div class="grid"><div class="item"><small>Patient email</small><strong>{{ $patient->email ?: 'Not recorded' }}</strong></div><div class="item"><small>Portal account</small><strong>{{ $patient->hasPortalAccount() ? 'Linked' : 'Not provisioned' }}</strong></div><div class="item"><small>Portal status</small><strong>@if(!$patient->hasPortalAccount())<span class="badge">Not provisioned</span>@elseif($patient->hasActivePortal())<span class="badge">Active</span>@elseif($patient->portal_disabled_at)<span class="badge off">Disabled</span>@else<span class="badge pending">Pending activation</span>@endif</strong></div></div></div>
+<div class="panel"><h2>Portal access controls</h2><p class="muted">Portal credentials remain separate from the clinical record. Provisioning creates a patient identity without activating access.</p>
+@if(!$patient->hasPortalAccount())
+<form method="POST" action="{{ route('patients.portal.provision',$patient) }}">@csrf<button class="btn primary">Provision patient portal</button></form>
+@elseif(!$patient->hasActivePortal())
+<div class="actions"><form method="POST" action="{{ route('patients.portal.activate',$patient) }}">@csrf<button class="btn success">Activate portal</button></form></div>
+@else
+<form method="POST" action="{{ route('patients.portal.disable',$patient) }}">@csrf<button class="btn danger">Disable portal access</button></form>
+@endif
+<div class="note">Patient registration and portal access remain separate. Changing portal access never changes the patient's medical record, MRN, demographics, or clinical information.</div></div>
+<div class="panel"><h2>Lifecycle</h2><div class="grid"><div class="item"><small>Invited</small><strong>{{ $patient->portal_invited_at?->format('d M Y H:i') ?: '—' }}</strong></div><div class="item"><small>Activated</small><strong>{{ $patient->portal_activated_at?->format('d M Y H:i') ?: '—' }}</strong></div><div class="item"><small>Disabled</small><strong>{{ $patient->portal_disabled_at?->format('d M Y H:i') ?: '—' }}</strong></div></div></div>
+</main></div></body></html>
