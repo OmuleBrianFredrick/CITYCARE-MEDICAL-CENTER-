@@ -24,17 +24,25 @@ class AuthController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         $credentials = $request->credentials();
+        $key = strtolower(trim($credentials['email'])).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'email' => "Too many sign-in attempts. Please try again in {$seconds} seconds.",
+            ]);
+        }
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::hit($key, 60);
+
             throw ValidationException::withMessages([
                 'email' => 'The provided credentials do not match our records.',
             ]);
         }
 
         $request->session()->regenerate();
-
-        $key = strtolower(trim($credentials['email'])).'|'.$request->ip();
-        RateLimiter::clear($key);
 
         $user = $request->user();
 
@@ -48,6 +56,7 @@ class AuthController extends Controller
             ]);
         }
 
+        RateLimiter::clear($key);
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
 
         return redirect()->intended(route('dashboard'));
