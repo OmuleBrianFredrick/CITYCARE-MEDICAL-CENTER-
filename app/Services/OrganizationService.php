@@ -38,6 +38,8 @@ class OrganizationService
         }
 
         $attributes['facility_id'] = $facility->id;
+        $attributes['sort_order'] = $attributes['sort_order'] ?? 0;
+        $attributes['is_active'] = $attributes['is_active'] ?? true;
 
         return Department::create($attributes);
     }
@@ -48,9 +50,9 @@ class OrganizationService
             Department::query()->findOrFail($attributes['department_id']);
         }
 
-        $attributes['type'] ??= 'service';
-        $attributes['is_active'] ??= true;
-        $attributes['sort_order'] ??= 0;
+        $attributes['type'] = $attributes['type'] ?? 'service';
+        $attributes['is_active'] = $attributes['is_active'] ?? true;
+        $attributes['sort_order'] = $attributes['sort_order'] ?? 0;
 
         return ServicePoint::create($attributes);
     }
