@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
     'sex', 'date_of_birth', 'national_id', 'phone', 'email', 'address_line1', 'address_line2',
     'city', 'district', 'country', 'emergency_contact_name', 'emergency_contact_relationship',
     'emergency_contact_phone', 'next_of_kin_name', 'next_of_kin_relationship', 'next_of_kin_phone',
-    'status', 'registered_at',
+    'status', 'registered_at', 'portal_invited_at', 'portal_activated_at', 'portal_disabled_at',
 ])]
 class Patient extends Model
 {
@@ -28,6 +28,9 @@ class Patient extends Model
         return [
             'date_of_birth' => 'date',
             'registered_at' => 'datetime',
+            'portal_invited_at' => 'datetime',
+            'portal_activated_at' => 'datetime',
+            'portal_disabled_at' => 'datetime',
         ];
     }
 
@@ -49,5 +52,15 @@ class Patient extends Model
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function hasPortalAccount(): bool
+    {
+        return $this->user_id !== null;
+    }
+
+    public function hasActivePortal(): bool
+    {
+        return $this->user?->is_active === true && $this->portal_disabled_at === null;
     }
 }
