@@ -1,58 +1,218 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CityCare Medical Center
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-scale medical-center management platform being developed with Laravel 13 for CityCare Medical Center. The project is intentionally designed as a modular, secure, professional system rather than a minimal CRUD application.
 
-## About Laravel
+## Technology Foundation
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 13.26.1
+- PHP 8.3+
+- MySQL
+- Africa/Kampala application timezone
+- Blade-based server-rendered UI foundation
+- Laravel sessions, cache and queues
+- PHPUnit feature/unit testing
+- GitHub as the source-control and collaboration platform
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Product Vision
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+CityCare will provide a unified operational platform covering patient access, reception, appointments, clinical care, diagnostics, pharmacy, billing, payments, insurance, inventory, procurement, reporting, notifications, administration, and security/audit workflows.
 
-## Learning Laravel
+The architecture separates patient-facing access from internal staff access and uses explicit role/permission authorization for protected capabilities.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Architecture
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The living architecture specification is maintained in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+The principal domains are:
 
-## Agentic Development
+- Organization and administration
+- Identity and access management
+- Patient management
+- Appointments and scheduling
+- Reception and queue management
+- Clinical encounters and records
+- Laboratory
+- Pharmacy
+- Billing and finance
+- Insurance
+- Inventory and procurement
+- Admissions and inpatient workflows where required
+- Notifications
+- Reporting and analytics
+- Audit and security
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Identity and Access Foundation
+
+CityCare distinguishes between patient accounts and internal staff accounts through `users.user_type`.
+
+Initial system roles include:
+
+- Super Administrator
+- Administrator
+- Receptionist
+- Doctor / Clinician
+- Nurse / Clinical Support
+- Laboratory Staff
+- Pharmacy Staff
+- Cashier / Finance
+- Records Officer
+- Inventory / Stores Staff
+- Patient
+
+Authorization is permission-based. Roles are associated with reusable permissions through the role/permission schema. Protected routes can use the `permission:<permission-slug>` middleware rather than relying on UI visibility alone.
+
+Staff profiles are separated from the base authentication record and can contain employee number, job title, employment status, phone, and joining date.
+
+## Authentication Foundation
+
+The current authentication layer includes:
+
+- Email/password session authentication
+- Secure session regeneration after successful login
+- Explicit active/inactive account enforcement
+- Logout with session invalidation and CSRF token regeneration
+- Last-login timestamp tracking
+- Named login rate limiting using email and IP address
+- Generic invalid-credential responses
+- Role and permission resolution through the authenticated user
+- Permission middleware for protected application capabilities
+- Premium responsive CityCare login and authenticated dashboard foundation
+
+Multi-factor authentication/OTP will be introduced through the security policy appropriate to each account class rather than hard-coded as a universal login ceremony.
+
+## Database
+
+The local development environment uses the MySQL database:
+
+`citycare_medical_center`
+
+The database foundation currently contains Laravel framework tables plus the CityCare access-control schema. CityCare domain migrations will be introduced in controlled stages so relationships, constraints, authorization boundaries, and business rules can be validated as each module is built.
+
+## UI Direction
+
+The visual language is based on a premium medical-center experience:
+
+- layered blue palette
+- white/cream surfaces
+- restrained yellow accents
+- high readability and accessible contrast
+- responsive layouts
+- professional cards, tables, status badges and forms
+- separate but related patient-facing and internal-workspace experiences
+
+The current login and dashboard are foundation interfaces. They will evolve as the complete navigation and domain modules are introduced.
+
+## Testing Strategy
+
+Testing is layered:
+
+1. Unit tests for isolated business logic.
+2. Feature tests for HTTP workflows and authorization.
+3. Database tests for relationships, constraints and transactional integrity.
+4. Local browser testing for complete user journeys and visual/interaction QA.
+5. GitHub CI for reproducible automated checks as the pipeline is established.
+
+Current automated foundation coverage includes access-control seeding, role/permission resolution, patient/staff distinction, authentication, active-account enforcement, login throttling, authorization middleware, and logout behavior.
+
+## Development Sequence
+
+The project follows a controlled delivery sequence:
+
+1. Foundation
+2. Identity and Security
+3. Organization and Departments
+4. Patient Management
+5. Appointments and Reception
+6. Clinical Core
+7. Laboratory
+8. Pharmacy
+9. Billing and Payments
+10. Insurance
+11. Inventory and Procurement
+12. Admissions where required
+13. Notifications and Reporting
+14. Premium UI/UX refinement
+15. Local browser QA
+16. Security/performance hardening
+17. Documentation and release readiness
+
+A module is not considered complete merely because its pages render. It must have its data model, migrations, relationships, validation, authorization, business rules, UI states, tests, and applicable browser workflow verified.
+
+## Current Project Status
+
+### Completed
+
+- Laravel 13 foundation created
+- GitHub repository connected and synchronized
+- CityCare application identity configured
+- Africa/Kampala timezone configured
+- MySQL configured and connected
+- Public storage link established
+- Framework migrations executed
+- CityCare access-control schema implemented
+- System roles and permissions seeded
+- Staff profile foundation implemented
+- Role/permission resolution implemented
+- Authentication request validation implemented
+- Login/logout workflow implemented
+- Active-account enforcement implemented
+- Login rate limiting implemented
+- Permission middleware implemented
+- Initial CityCare login interface implemented
+- Initial authenticated dashboard implemented
+- Authentication/access-control feature tests added
+- Architecture specification added under `docs/ARCHITECTURE.md`
+
+### Current Phase
+
+**Phase 1.3 — Identity and Security**
+
+Current chapter: **Authentication & Authorization Engine**.
+
+Next work will expand the staff account lifecycle, password/security workflows, authorization policies, audit/security event foundation, and the complete authentication test matrix before moving into organization and department management.
+
+## Local Setup
+
+1. Clone the repository.
+2. Install PHP dependencies:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+3. Create `.env` from `.env.example` and configure local credentials.
+4. Generate an application key:
 
-## Contributing
+```bash
+php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+5. Create the `citycare_medical_center` MySQL database.
+6. Run migrations and seeders:
 
-## Code of Conduct
+```bash
+php artisan migrate
+php artisan db:seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+7. Link public storage:
 
-## Security Vulnerabilities
+```bash
+php artisan storage:link
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+8. Run automated tests:
 
-## License
+```bash
+php artisan test
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+9. Start the local application:
+
+```bash
+php artisan serve
+```
+
+## Development Rule
+
+Every phase should leave `main` runnable, documented, and testable. Changes are implemented in logical checkpoints and synchronized back to the GitHub repository before the project advances to the next major domain.
