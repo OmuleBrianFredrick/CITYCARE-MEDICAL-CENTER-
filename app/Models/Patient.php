@@ -38,6 +38,7 @@ class Patient extends Model
     public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function appointments(): HasMany { return $this->hasMany(Appointment::class); }
+    public function clinicalEncounters(): HasMany { return $this->hasMany(ClinicalEncounter::class); }
 
     public function getFullNameAttribute(): string
     {
