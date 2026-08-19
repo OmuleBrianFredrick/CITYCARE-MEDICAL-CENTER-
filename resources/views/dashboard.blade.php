@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard · CityCare Medical Center</title>
     <style>
-        :root { --navy:#082f49; --blue:#0369a1; --sky:#e0f2fe; --cream:#f8faf7; --ink:#102a43; --muted:#627d98; --line:#d9e2ec; --yellow:#f4c542; }
+        :root { --navy:#082f49; --blue:#0369a1; --sky:#e0f2fe; --cream:#f8faf7; --ink:#102a43; --muted:#627d98; --line:#d9e2ec; }
         * { box-sizing:border-box; }
         body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--cream); }
         .shell { min-height:100vh; display:grid; grid-template-columns:250px 1fr; }
@@ -24,7 +24,6 @@
         .card { padding:22px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 8px 28px rgba(16,42,67,.05); } .card span { color:var(--muted); font-size:.82rem; } .card strong { display:block; margin-top:10px; font-size:1.35rem; }
         .hero { padding:28px; border-radius:20px; color:#fff; background:linear-gradient(135deg,var(--blue),var(--navy)); position:relative; overflow:hidden; } .hero::after { content:""; position:absolute; width:180px;height:180px;right:-60px;top:-60px;border-radius:50%;border:35px solid rgba(244,197,66,.18); }
         .hero h2 { margin:0 0 8px; font-size:1.65rem; } .hero p { max-width:700px; color:#d9f1fb; line-height:1.6; }
-        .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; } .action { padding:11px 14px; border-radius:10px; background:#fff; color:var(--navy); text-decoration:none; font-weight:800; }
         @media(max-width:850px){ .shell{grid-template-columns:1fr} aside{display:none}.cards{grid-template-columns:1fr} header{align-items:flex-start;flex-direction:column}.user{width:100%;justify-content:space-between} }
     </style>
 </head>
@@ -48,7 +47,6 @@
         <section class="hero">
             <h2>CityCare workspace foundation</h2>
             <p>Authentication, account status, role resolution, permission enforcement, and secure session handling are now established. Clinical and operational modules will be connected to this workspace in their respective development phases.</p>
-            <div class="actions"><a class="action" href="{{ route('access-check') }}">Verify my access</a></div>
         </section>
     </main>
 </div>
