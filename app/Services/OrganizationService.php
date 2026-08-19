@@ -48,6 +48,10 @@ class OrganizationService
             Department::query()->findOrFail($attributes['department_id']);
         }
 
+        $attributes['type'] ??= 'service';
+        $attributes['is_active'] ??= true;
+        $attributes['sort_order'] ??= 0;
+
         return ServicePoint::create($attributes);
     }
 
