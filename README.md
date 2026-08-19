@@ -61,7 +61,7 @@ Initial system roles include:
 
 Authorization is permission-based. Roles are associated with reusable permissions through the role/permission schema. Protected routes can use the `permission:<permission-slug>` middleware rather than relying on UI visibility alone.
 
-Staff profiles are separated from the base authentication record and can contain employee number, job title, employment status, phone, and joining date.
+Staff profiles are separated from the base authentication record and can contain employee number, job title, employment status, phone, joining date, department, and service point.
 
 ## Authentication Foundation
 
@@ -76,9 +76,26 @@ The current authentication layer includes:
 - Generic invalid-credential responses
 - Role and permission resolution through the authenticated user
 - Permission middleware for protected application capabilities
+- Employee invitation foundation with secure token hashing and lifecycle states
 - Premium responsive CityCare login and authenticated dashboard foundation
 
 Multi-factor authentication/OTP will be introduced through the security policy appropriate to each account class rather than hard-coded as a universal login ceremony.
+
+## Organization Foundation
+
+The organization domain now provides the core structures required for the medical center itself:
+
+- Facility profile and identity configuration
+- Departments
+- Service points
+- Typed system settings
+- Operational/notification configuration storage
+- Department and service-point assignment capability on staff profiles
+- Organization view/manage permissions
+- Default CityCare facility, department and service-point seed data
+- Protected organization administration workspace
+
+The facility configuration establishes the CityCare regional defaults, including Uganda, Africa/Kampala, UGX and the premium blue/cream/yellow visual palette.
 
 ## Database
 
@@ -86,7 +103,7 @@ The local development environment uses the MySQL database:
 
 `citycare_medical_center`
 
-The database foundation currently contains Laravel framework tables plus the CityCare access-control schema. CityCare domain migrations will be introduced in controlled stages so relationships, constraints, authorization boundaries, and business rules can be validated as each module is built.
+CityCare domain migrations are introduced in controlled stages so relationships, constraints, authorization boundaries, and business rules can be validated as each module is built.
 
 ## UI Direction
 
@@ -100,7 +117,7 @@ The visual language is based on a premium medical-center experience:
 - professional cards, tables, status badges and forms
 - separate but related patient-facing and internal-workspace experiences
 
-The current login and dashboard are foundation interfaces. They will evolve as the complete navigation and domain modules are introduced.
+The login, dashboard, and organization administration workspace establish the initial internal visual system. It will evolve as the complete navigation and domain modules are introduced.
 
 ## Testing Strategy
 
@@ -112,7 +129,7 @@ Testing is layered:
 4. Local browser testing for complete user journeys and visual/interaction QA.
 5. GitHub CI for reproducible automated checks as the pipeline is established.
 
-Current automated foundation coverage includes access-control seeding, role/permission resolution, patient/staff distinction, authentication, active-account enforcement, login throttling, authorization middleware, and logout behavior.
+Current automated coverage includes access-control seeding, role/permission resolution, patient/staff distinction, authentication, active-account enforcement, login throttling, authorization middleware, logout behavior, employee invitation models/services, organization models/services, and organization authorization workflows.
 
 ## Development Sequence
 
@@ -158,18 +175,28 @@ A module is not considered complete merely because its pages render. It must hav
 - Active-account enforcement implemented
 - Login rate limiting implemented
 - Permission middleware implemented
-- Initial CityCare login interface implemented
-- Initial authenticated dashboard implemented
+- Employee invitation database/model foundation implemented
+- Employee invitation service/security foundation implemented
+- Pending employee password lifecycle supported
+- Organization schema implemented
+- Facility, department, service-point and system-setting models implemented
+- Organization configuration service implemented
+- Organization permissions added to the access matrix
+- Default CityCare organization seed data implemented
+- Protected organization administration routes implemented
+- Premium organization administration workspace implemented
 - Authentication/access-control feature tests added
+- Employee invitation feature tests added
+- Organization service/controller feature tests added
 - Architecture specification added under `docs/ARCHITECTURE.md`
 
 ### Current Phase
 
-**Phase 1.3 — Identity and Security**
+**Phase 3 — Organization and Departments**
 
-Current chapter: **Authentication & Authorization Engine**.
+Current chapter: **Organization Configuration & Operational Structure**.
 
-Next work will expand the staff account lifecycle, password/security workflows, authorization policies, audit/security event foundation, and the complete authentication test matrix before moving into organization and department management.
+The organization foundation is implemented and undergoing local verification. The remaining work in this phase includes completing staff organizational assignment workflows, operational settings refinement, organization policies/audit boundaries, and final browser verification before moving into Patient Management.
 
 ## Local Setup
 
