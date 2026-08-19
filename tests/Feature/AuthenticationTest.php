@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -85,6 +86,13 @@ class AuthenticationTest extends TestCase
             'password' => Hash::make('CorrectPassword123!'),
             'is_active' => true,
         ]);
+
+        $this->post(route('login.store'), [
+            'email' => 'throttle@citycare.test',
+            'password' => 'WrongPassword!',
+        ])->assertRedirect(route('login'));
+
+        RateLimiter::clear('throttle@citycare.test|127.0.0.1');
 
         foreach (range(1, 4) as $attempt) {
             $this->post(route('login.store'), [
