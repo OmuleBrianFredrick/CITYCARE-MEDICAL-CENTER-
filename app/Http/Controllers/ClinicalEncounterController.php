@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClinicalEncounterRequest;
 use App\Models\Appointment;
 use App\Models\ClinicalEncounter;
-use App\Models\Patient;
 use App\Services\ClinicalEncounterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Abort;
 use Illuminate\View\View;
 
 class ClinicalEncounterController extends Controller
@@ -53,15 +51,8 @@ class ClinicalEncounterController extends Controller
 
     public function store(StoreClinicalEncounterRequest $request): RedirectResponse
     {
-        $appointment = Appointment::query()->findOrFail($request->integer('appointment_id'));
-        $patient = $appointment->patient;
-
-        $clinician = $request->user();
-
-        $encounter = $this->encounters->open($appointment, $clinician, [
-            'type' => $request->string('type')->toString(),
-            'summary' => $request->input('summary'),
-        ]);
+        $appointment = Appointment::query()->with('patient')->findOrFail($request->integer('appointment_id'));
+        $encounter = $this->encounters->open($appointment, $request->user());
 
         return redirect()->route('encounters.show', $encounter)
             ->with('status', "Encounter {$encounter->encounter_number} opened successfully.");
@@ -76,8 +67,7 @@ class ClinicalEncounterController extends Controller
 
     public function close(Request $request, ClinicalEncounter $encounter): RedirectResponse
     {
-        $summary = $request->string('summary')->toString();
-        $this->encounters->close($encounter, $summary !== '' ? $summary : null);
+        $this->encounters->close($encounter, $request->input('summary'));
 
         return back()->with('status', "Encounter {$encounter->encounter_number} closed successfully.");
     }
