@@ -24,7 +24,7 @@ class LaboratoryOrderControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($doctor)->withSession()->post(
+        $response = $this->actingAs($doctor)->withSession([])->post(
             route('encounters.laboratory-orders.store', $encounter),
             ['test_ids' => $tests->pluck('id')->all(), 'notes' => 'Initial diagnostic workup.']
         );
@@ -47,7 +47,7 @@ class LaboratoryOrderControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($nurse)->withSession()->post(route('encounters.laboratory-orders.store', $encounter), [
+        $this->actingAs($nurse)->withSession([])->post(route('encounters.laboratory-orders.store', $encounter), [
             'test_ids' => [$test->id],
         ])->assertForbidden();
     }
@@ -66,8 +66,8 @@ class LaboratoryOrderControllerTest extends TestCase
         ]);
         $item = $order->items()->firstOrFail();
 
-        $response = $this->actingAs($laboratory)->withSession()->post(
-            route('encounters.laboratory-order-items.result', $item),
+        $response = $this->actingAs($laboratory)->withSession([])->post(
+            route('encounters.laboratory-order-items.result.store', $item),
             ['result_value' => 'Negative', 'comments' => 'No abnormal findings.']
         );
 
@@ -93,7 +93,7 @@ class LaboratoryOrderControllerTest extends TestCase
         ]);
         $item = $order->items()->firstOrFail();
 
-        $this->actingAs($doctor)->withSession()->post(route('encounters.laboratory-order-items.result', $item), [
+        $this->actingAs($doctor)->withSession([])->post(route('encounters.laboratory-order-items.result.store', $item), [
             'result_value' => 'Should be forbidden',
         ])->assertForbidden();
     }
@@ -111,7 +111,7 @@ class LaboratoryOrderControllerTest extends TestCase
             'test_ids' => [$test->id],
         ]);
 
-        $response = $this->actingAs($laboratory)->withSession()->post(
+        $response = $this->actingAs($laboratory)->withSession([])->post(
             route('encounters.laboratory-orders.cancel', $order)
         );
 
@@ -135,7 +135,7 @@ class LaboratoryOrderControllerTest extends TestCase
             'test_ids' => [$test->id],
         ]);
 
-        $this->actingAs($doctor)->withSession()->post(route('encounters.laboratory-orders.cancel', $order))->assertForbidden();
+        $this->actingAs($doctor)->withSession([])->post(route('encounters.laboratory-orders.cancel', $order))->assertForbidden();
     }
 
     private function userWithRole(string $roleSlug): User
