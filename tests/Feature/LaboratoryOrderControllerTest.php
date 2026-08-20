@@ -27,7 +27,6 @@ class LaboratoryOrderControllerTest extends TestCase
         $response = $this->from(route('encounters.show', $encounter))
             ->actingAs($doctor)
             ->post(route('encounters.laboratory-orders.store', $encounter), [
-                '_token' => csrf_token(),
                 'test_ids' => $tests->pluck('id')->all(),
                 'notes' => 'Initial diagnostic workup.',
             ]);
@@ -52,7 +51,6 @@ class LaboratoryOrderControllerTest extends TestCase
 
         $this->actingAs($nurse)
             ->post(route('encounters.laboratory-orders.store', $encounter), [
-                '_token' => csrf_token(),
                 'test_ids' => [$test->id],
             ])
             ->assertForbidden();
@@ -75,7 +73,6 @@ class LaboratoryOrderControllerTest extends TestCase
         $response = $this->from(route('encounters.show', $encounter))
             ->actingAs($laboratory)
             ->post(route('encounters.laboratory-order-items.result.store', $item), [
-                '_token' => csrf_token(),
                 'result_value' => 'Negative',
                 'comments' => 'No abnormal findings.',
             ]);
@@ -104,7 +101,6 @@ class LaboratoryOrderControllerTest extends TestCase
 
         $this->actingAs($doctor)
             ->post(route('encounters.laboratory-order-items.result.store', $item), [
-                '_token' => csrf_token(),
                 'result_value' => 'Should be forbidden',
             ])
             ->assertForbidden();
@@ -125,9 +121,7 @@ class LaboratoryOrderControllerTest extends TestCase
 
         $response = $this->from(route('encounters.show', $encounter))
             ->actingAs($laboratory)
-            ->post(route('encounters.laboratory-orders.cancel', $order), [
-                '_token' => csrf_token(),
-            ]);
+            ->post(route('encounters.laboratory-orders.cancel', $order));
 
         $response->assertRedirect(route('encounters.show', $encounter));
         $this->assertDatabaseHas('laboratory_orders', [
@@ -150,9 +144,7 @@ class LaboratoryOrderControllerTest extends TestCase
         ]);
 
         $this->actingAs($doctor)
-            ->post(route('encounters.laboratory-orders.cancel', $order), [
-                '_token' => csrf_token(),
-            ])
+            ->post(route('encounters.laboratory-orders.cancel', $order))
             ->assertForbidden();
     }
 
