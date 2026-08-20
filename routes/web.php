@@ -4,6 +4,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClinicalDiagnosisController;
 use App\Http\Controllers\ClinicalEncounterController;
+use App\Http\Controllers\ClinicalReferralAttachmentController;
 use App\Http\Controllers\ClinicalReferralController;
 use App\Http\Controllers\ClinicalTreatmentPlanController;
 use App\Http\Controllers\OrganizationController;
@@ -60,6 +61,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/referrals/{referral}/accept', [ClinicalReferralController::class, 'accept'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.accept');
         Route::post('/referrals/{referral}/complete', [ClinicalReferralController::class, 'complete'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.complete');
         Route::post('/referrals/{referral}/cancel', [ClinicalReferralController::class, 'cancel'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.cancel');
+        Route::post('/referrals/{referral}/attachments', [ClinicalReferralAttachmentController::class, 'store'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.attachments.store');
+        Route::delete('/referral-attachments/{attachment}', [ClinicalReferralAttachmentController::class, 'destroy'])->middleware('permission:clinical.referrals.manage')->whereNumber('attachment')->name('referrals.attachments.destroy');
         Route::post('/{encounter}/close', [ClinicalEncounterController::class, 'close'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('close');
         Route::post('/{encounter}/cancel', [ClinicalEncounterController::class, 'cancel'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('cancel');
         Route::post('/', [ClinicalEncounterController::class, 'store'])->middleware('permission:clinical.encounters.create')->name('store');
