@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('clinical_referrals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('encounter_id')->constrained('clinical_encounters')->cascadeOnDelete();
-            $table->foreignId('author_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('referrer_id')->constrained('users')->restrictOnDelete();
             $table->string('referred_to');
             $table->text('reason');
             $table->string('priority')->default('routine');
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['encounter_id', 'status']);
-            $table->index(['author_id', 'created_at']);
+            $table->index(['referrer_id', 'created_at']);
         });
     }
 
