@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CancelLaboratoryOrderRequest;
 use App\Http\Requests\StoreLaboratoryOrderRequest;
 use App\Http\Requests\StoreLaboratoryResultRequest;
 use App\Models\ClinicalEncounter;
@@ -30,7 +31,7 @@ class LaboratoryOrderController extends Controller
         return back()->with('status', "Laboratory result #{$result->id} recorded successfully.");
     }
 
-    public function cancel(LaboratoryOrder $order, StoreLaboratoryOrderRequest $request): RedirectResponse
+    public function cancel(CancelLaboratoryOrderRequest $request, LaboratoryOrder $order): RedirectResponse
     {
         $order = $this->laboratory->cancelOrder($order, $request->user());
 
