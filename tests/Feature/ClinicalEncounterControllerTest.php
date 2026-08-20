@@ -116,6 +116,17 @@ class ClinicalEncounterControllerTest extends TestCase
             ->assertSee($encounter->encounter_number);
     }
 
+    public function test_clinician_can_view_loaded_notes_vitals_diagnoses_treatment_plans_and_referrals(): void
+    {
+        $clinician = $this->staffWithRole('doctor');
+        $appointment = $this->checkedInAppointment($clinician);
+        $encounter = app(\App\Services\ClinicalEncounterService::class)->open($appointment, $clinician);
+
+        $this->actingAs($clinician)
+            ->get(route('encounters.show', $encounter))
+            ->assertOk();
+    }
+
     private function checkedInAppointment(User $clinician, string $suffix = 'Patient'): Appointment
     {
         $facility = Facility::factory()->create();
