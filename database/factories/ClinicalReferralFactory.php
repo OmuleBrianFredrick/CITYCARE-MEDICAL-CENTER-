@@ -16,7 +16,7 @@ class ClinicalReferralFactory extends Factory
     {
         return [
             'encounter_id' => ClinicalEncounter::factory(),
-            'author_id' => User::factory()->state(['user_type' => 'staff', 'is_active' => true]),
+            'referrer_id' => User::factory()->state(['user_type' => 'staff', 'is_active' => true]),
             'referred_to' => fake()->randomElement(['Internal Medicine', 'Laboratory', 'Pharmacy', 'Specialist Clinic']),
             'reason' => fake()->sentence(),
             'priority' => ClinicalReferral::PRIORITY_ROUTINE,
