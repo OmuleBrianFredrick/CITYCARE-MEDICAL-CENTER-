@@ -21,9 +21,14 @@ class LaboratoryOrderService
             throw ValidationException::withMessages(['test_ids' => 'At least one laboratory test is required.']);
         }
 
-        $tests = LaboratoryTest::query()->whereKey($testIds)->where('is_active', true)->get();
+        $tests = LaboratoryTest::query()
+            ->whereKey($testIds)
+            ->where('facility_id', $encounter->facility_id)
+            ->where('is_active', true)
+            ->get();
+
         if ($tests->count() !== count($testIds)) {
-            throw ValidationException::withMessages(['test_ids' => 'All selected laboratory tests must be active.']);
+            throw ValidationException::withMessages(['test_ids' => 'All selected laboratory tests must be active and belong to the encounter facility.']);
         }
 
         return DB::transaction(function () use ($encounter, $author, $data, $tests): LaboratoryOrder {
@@ -59,8 +64,11 @@ class LaboratoryOrderService
         $item->loadMissing('order.encounter', 'laboratoryTest');
         $order = $item->order;
         $encounter = $order?->encounter;
-        if (! $encounter || ! $encounter->isOpen()) {
+        if (! $order || ! $encounter || ! $encounter->isOpen()) {
             throw ValidationException::withMessages(['encounter' => 'Laboratory results require an open clinical encounter.']);
+        }
+        if ($order->isCancelled() || $order->isCompleted()) {
+            throw ValidationException::withMessages(['status' => 'This laboratory order cannot accept a new result.']);
         }
         if ($item->isCancelled() || $item->isCompleted()) {
             throw ValidationException::withMessages(['status' => 'This laboratory item cannot accept a new result.']);
@@ -87,11 +95,10 @@ class LaboratoryOrderService
 
             $order = $item->order()->with('items')->firstOrFail();
             if ($order->items->every(fn (LaboratoryOrderItem $orderItem) => $orderItem->isCompleted() || $orderItem->isCancelled())) {
+                $allCancelled = $order->items->every(fn (LaboratoryOrderItem $orderItem) => $orderItem->isCancelled());
                 $order->update([
-                    'status' => $order->items->every(fn (LaboratoryOrderItem $orderItem) => $orderItem->isCancelled())
-                        ? LaboratoryOrder::STATUS_CANCELLED
-                        : LaboratoryOrder::STATUS_COMPLETED,
-                    'completed_at' => now(),
+                    'status' => $allCancelled ? LaboratoryOrder::STATUS_CANCELLED : LaboratoryOrder::STATUS_COMPLETED,
+                    'completed_at' => $allCancelled ? null : now(),
                 ]);
             } else {
                 $order->update(['status' => LaboratoryOrder::STATUS_IN_PROGRESS]);
