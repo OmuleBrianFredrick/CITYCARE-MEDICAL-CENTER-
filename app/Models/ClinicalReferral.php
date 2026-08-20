@@ -11,6 +11,7 @@ class ClinicalReferral extends Model
     use HasFactory;
 
     public const STATUS_PENDING = 'pending';
+    public const STATUS_ACCEPTED = 'accepted';
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_CANCELLED = 'cancelled';
 
@@ -38,5 +39,6 @@ class ClinicalReferral extends Model
     }
 
     public function isPending(): bool { return $this->status === self::STATUS_PENDING; }
+    public function isAccepted(): bool { return $this->status === self::STATUS_ACCEPTED; }
     public function isCompleted(): bool { return $this->status === self::STATUS_COMPLETED; }
 }
