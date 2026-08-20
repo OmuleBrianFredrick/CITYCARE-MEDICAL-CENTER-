@@ -9,7 +9,7 @@ use Illuminate\Validation\ValidationException;
 
 class ClinicalReferralService
 {
-    public function create(ClinicalEncounter $encounter, User $author, array $data): ClinicalReferral
+    public function create(ClinicalEncounter $encounter, User $referrer, array $data): ClinicalReferral
     {
         if (! $encounter->isOpen()) {
             throw ValidationException::withMessages([
@@ -17,15 +17,15 @@ class ClinicalReferralService
             ]);
         }
 
-        if (! $author->isStaff() || ! $author->isActive()) {
+        if (! $referrer->isStaff() || ! $referrer->isActive()) {
             throw ValidationException::withMessages([
-                'author_id' => 'Only active staff members can create referrals.',
+                'referrer_id' => 'Only active staff members can create referrals.',
             ]);
         }
 
         return ClinicalReferral::create([
             'encounter_id' => $encounter->id,
-            'author_id' => $author->id,
+            'referrer_id' => $referrer->id,
             'referred_to' => $data['referred_to_department'] ?? $data['referred_to'] ?? null,
             'reason' => $data['reason'],
             'priority' => $data['priority'] ?? ClinicalReferral::PRIORITY_ROUTINE,
