@@ -40,11 +40,7 @@ class ClinicalEncounterController extends Controller
 
     public function create(): View
     {
-        $appointments = Appointment::query()
-            ->with(['patient', 'department', 'servicePoint', 'provider'])
-            ->where('status', Appointment::STATUS_CHECKED_IN)
-            ->orderBy('scheduled_start')
-            ->get();
+        $appointments = Appointment::query()->with(['patient', 'department', 'servicePoint', 'provider'])->where('status', Appointment::STATUS_CHECKED_IN)->orderBy('scheduled_start')->get();
 
         return view('encounters.create', compact('appointments'));
     }
@@ -54,13 +50,15 @@ class ClinicalEncounterController extends Controller
         $appointment = Appointment::query()->with('patient')->findOrFail($request->integer('appointment_id'));
         $encounter = $this->encounters->open($appointment, $request->user());
 
-        return redirect()->route('encounters.show', $encounter)
-            ->with('status', "Encounter {$encounter->encounter_number} opened successfully.");
+        return redirect()->route('encounters.show', $encounter)->with('status', "Encounter {$encounter->encounter_number} opened successfully.");
     }
 
     public function show(ClinicalEncounter $encounter): View
     {
-        $encounter->load(['patient', 'appointment', 'department', 'servicePoint', 'clinician']);
+        $encounter->load([
+            'patient', 'appointment', 'department', 'servicePoint', 'clinician',
+            'diagnoses' => fn ($query) => $query->with('recorder')->latest(),
+        ]);
 
         return view('encounters.show', compact('encounter'));
     }
