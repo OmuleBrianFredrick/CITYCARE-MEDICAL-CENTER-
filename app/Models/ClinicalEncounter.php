@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClinicalEncounter extends Model
 {
@@ -37,6 +38,7 @@ class ClinicalEncounter extends Model
     public function patient(): BelongsTo { return $this->belongsTo(Patient::class); }
     public function appointment(): BelongsTo { return $this->belongsTo(Appointment::class); }
     public function clinician(): BelongsTo { return $this->belongsTo(User::class, 'clinician_id'); }
+    public function vitals(): HasMany { return $this->hasMany(ClinicalVital::class, 'encounter_id'); }
 
     public function isOpen(): bool { return $this->status === self::STATUS_OPEN; }
     public function isClosed(): bool { return $this->status === self::STATUS_CLOSED; }
