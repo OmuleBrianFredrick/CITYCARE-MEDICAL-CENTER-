@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicalTreatmentPlan;
+use App\Models\User;
 use App\Services\ClinicalTreatmentPlanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
