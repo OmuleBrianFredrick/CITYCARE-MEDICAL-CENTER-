@@ -11,12 +11,12 @@ class ClinicalReferralAttachment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'referral_id', 'uploaded_by', 'disk', 'path', 'original_name', 'mime_type', 'size_bytes',
+        'clinical_referral_id', 'uploaded_by', 'disk', 'file_path', 'file_name', 'mime_type', 'file_size',
     ];
 
     public function referral(): BelongsTo
     {
-        return $this->belongsTo(ClinicalReferral::class, 'referral_id');
+        return $this->belongsTo(ClinicalReferral::class, 'clinical_referral_id');
     }
 
     public function uploader(): BelongsTo
