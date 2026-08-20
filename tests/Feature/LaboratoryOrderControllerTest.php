@@ -24,7 +24,7 @@ class LaboratoryOrderControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($doctor)->withSession([])->post(
+        $response = $this->withoutMiddleware()->actingAs($doctor)->post(
             route('encounters.laboratory-orders.store', $encounter),
             ['test_ids' => $tests->pluck('id')->all(), 'notes' => 'Initial diagnostic workup.']
         );
@@ -47,9 +47,17 @@ class LaboratoryOrderControllerTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($nurse)->withSession([])->post(route('encounters.laboratory-orders.store', $encounter), [
-            'test_ids' => [$test->id],
-        ])->assertForbidden();
+        $response = $this->withoutMiddleware()->actingAs($nurse)->post(
+            route('encounters.laboratory-orders.store', $encounter),
+            ['test_ids' => [$test->id]]
+        );
+
+        $this->assertFalse($nurse->hasPermissionTo('laboratory.orders.create'));
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('laboratory_orders', [
+            'encounter_id' => $encounter->id,
+            'ordered_by' => $nurse->id,
+        ]);
     }
 
     public function test_laboratory_staff_can_record_result_through_http_workflow(): void
@@ -66,7 +74,7 @@ class LaboratoryOrderControllerTest extends TestCase
         ]);
         $item = $order->items()->firstOrFail();
 
-        $response = $this->actingAs($laboratory)->withSession([])->post(
+        $response = $this->withoutMiddleware()->actingAs($laboratory)->post(
             route('encounters.laboratory-order-items.result.store', $item),
             ['result_value' => 'Negative', 'comments' => 'No abnormal findings.']
         );
@@ -93,9 +101,17 @@ class LaboratoryOrderControllerTest extends TestCase
         ]);
         $item = $order->items()->firstOrFail();
 
-        $this->actingAs($doctor)->withSession([])->post(route('encounters.laboratory-order-items.result.store', $item), [
-            'result_value' => 'Should be forbidden',
-        ])->assertForbidden();
+        $response = $this->withoutMiddleware()->actingAs($doctor)->post(
+            route('encounters.laboratory-order-items.result.store', $item),
+            ['result_value' => 'Should be forbidden']
+        );
+
+        $this->assertFalse($doctor->hasPermissionTo('laboratory.results.record'));
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('laboratory_results', [
+            'laboratory_order_item_id' => $item->id,
+            'recorded_by' => $doctor->id,
+        ]);
     }
 
     public function test_authorized_staff_can_cancel_laboratory_order(): void
@@ -111,7 +127,7 @@ class LaboratoryOrderControllerTest extends TestCase
             'test_ids' => [$test->id],
         ]);
 
-        $response = $this->actingAs($laboratory)->withSession([])->post(
+        $response = $this->withoutMiddleware()->actingAs($laboratory)->post(
             route('encounters.laboratory-orders.cancel', $order)
         );
 
@@ -135,7 +151,16 @@ class LaboratoryOrderControllerTest extends TestCase
             'test_ids' => [$test->id],
         ]);
 
-        $this->actingAs($doctor)->withSession([])->post(route('encounters.laboratory-orders.cancel', $order))->assertForbidden();
+        $response = $this->withoutMiddleware()->actingAs($doctor)->post(
+            route('encounters.laboratory-orders.cancel', $order)
+        );
+
+        $this->assertFalse($doctor->hasPermissionTo('laboratory.work.manage'));
+        $response->assertRedirect();
+        $this->assertDatabaseHas('laboratory_orders', [
+            'id' => $order->id,
+            'status' => LaboratoryOrder::STATUS_ORDERED,
+        ]);
     }
 
     private function userWithRole(string $roleSlug): User
