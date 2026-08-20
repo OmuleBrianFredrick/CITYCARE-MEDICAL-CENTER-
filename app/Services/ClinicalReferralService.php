@@ -26,7 +26,7 @@ class ClinicalReferralService
         return ClinicalReferral::create([
             'encounter_id' => $encounter->id,
             'author_id' => $author->id,
-            'referred_to' => $data['referred_to'],
+            'referred_to' => $data['referred_to_department'] ?? $data['referred_to'] ?? null,
             'reason' => $data['reason'],
             'priority' => $data['priority'] ?? ClinicalReferral::PRIORITY_ROUTINE,
             'status' => ClinicalReferral::STATUS_PENDING,
@@ -34,11 +34,26 @@ class ClinicalReferralService
         ]);
     }
 
-    public function complete(ClinicalReferral $referral): ClinicalReferral
+    public function accept(ClinicalReferral $referral): ClinicalReferral
     {
         if (! $referral->isPending()) {
             throw ValidationException::withMessages([
-                'referral' => 'Only pending referrals can be completed.',
+                'referral' => 'Only pending referrals can be accepted.',
+            ]);
+        }
+
+        $referral->forceFill([
+            'status' => ClinicalReferral::STATUS_ACCEPTED,
+        ])->save();
+
+        return $referral->refresh();
+    }
+
+    public function complete(ClinicalReferral $referral): ClinicalReferral
+    {
+        if (! $referral->isPending() && ! $referral->isAccepted()) {
+            throw ValidationException::withMessages([
+                'referral' => 'Only pending or accepted referrals can be completed.',
             ]);
         }
 
@@ -52,9 +67,9 @@ class ClinicalReferralService
 
     public function cancel(ClinicalReferral $referral): ClinicalReferral
     {
-        if (! $referral->isPending()) {
+        if (! $referral->isPending() && ! $referral->isAccepted()) {
             throw ValidationException::withMessages([
-                'referral' => 'Only pending referrals can be cancelled.',
+                'referral' => 'Only pending or accepted referrals can be cancelled.',
             ]);
         }
 
