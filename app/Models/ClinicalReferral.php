@@ -20,7 +20,7 @@ class ClinicalReferral extends Model
     public const PRIORITY_EMERGENCY = 'emergency';
 
     protected $fillable = [
-        'encounter_id', 'author_id', 'referred_to', 'reason', 'priority', 'status', 'notes', 'completed_at',
+        'encounter_id', 'referrer_id', 'referred_to', 'reason', 'priority', 'status', 'notes', 'completed_at',
     ];
 
     protected function casts(): array
@@ -33,9 +33,9 @@ class ClinicalReferral extends Model
         return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');
     }
 
-    public function author(): BelongsTo
+    public function referrer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'author_id');
+        return $this->belongsTo(User::class, 'referrer_id');
     }
 
     public function isPending(): bool { return $this->status === self::STATUS_PENDING; }
