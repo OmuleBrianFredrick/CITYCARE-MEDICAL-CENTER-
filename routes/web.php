@@ -4,6 +4,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClinicalDiagnosisController;
 use App\Http\Controllers\ClinicalEncounterController;
+use App\Http\Controllers\ClinicalReferralController;
 use App\Http\Controllers\ClinicalTreatmentPlanController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
@@ -55,6 +56,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/{encounter}/treatment-plans', [ClinicalTreatmentPlanController::class, 'store'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('encounter')->name('treatment-plans.store');
         Route::post('/treatment-plans/{plan}/complete', [ClinicalTreatmentPlanController::class, 'complete'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('plan')->name('treatment-plans.complete');
         Route::post('/treatment-plans/{plan}/cancel', [ClinicalTreatmentPlanController::class, 'cancel'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('plan')->name('treatment-plans.cancel');
+        Route::post('/{encounter}/referrals', [ClinicalReferralController::class, 'store'])->middleware('permission:clinical.referrals.manage')->whereNumber('encounter')->name('referrals.store');
+        Route::post('/referrals/{referral}/accept', [ClinicalReferralController::class, 'accept'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.accept');
+        Route::post('/referrals/{referral}/complete', [ClinicalReferralController::class, 'complete'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.complete');
+        Route::post('/referrals/{referral}/cancel', [ClinicalReferralController::class, 'cancel'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.cancel');
         Route::post('/{encounter}/close', [ClinicalEncounterController::class, 'close'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('close');
         Route::post('/{encounter}/cancel', [ClinicalEncounterController::class, 'cancel'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('cancel');
         Route::post('/', [ClinicalEncounterController::class, 'store'])->middleware('permission:clinical.encounters.create')->name('store');
