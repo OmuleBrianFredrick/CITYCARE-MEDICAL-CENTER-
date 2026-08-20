@@ -4,6 +4,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClinicalDiagnosisController;
 use App\Http\Controllers\ClinicalEncounterController;
+use App\Http\Controllers\ClinicalTreatmentPlanController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientPortalController;
@@ -15,34 +16,22 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
-    Route::post('/login', [AuthController::class, 'store'])
-        ->middleware('throttle:login')
-        ->name('login.store');
+    Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:login')->name('login.store');
 });
 
 Route::middleware(['auth', 'active'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->middleware('permission:dashboard.view')->name('dashboard');
-
+    Route::get('/dashboard', function () { return view('dashboard'); })->middleware('permission:dashboard.view')->name('dashboard');
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 
     Route::middleware('permission:patients.view')->group(function () {
         Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
-        Route::get('/patients/{patient}', [PatientController::class, 'show'])
-            ->whereNumber('patient')
-            ->name('patients.show');
-        Route::get('/patients/{patient}/portal', [PatientPortalController::class, 'show'])
-            ->whereNumber('patient')
-            ->middleware('permission:patients.update')
-            ->name('patients.portal.show');
+        Route::get('/patients/{patient}', [PatientController::class, 'show'])->whereNumber('patient')->name('patients.show');
+        Route::get('/patients/{patient}/portal', [PatientPortalController::class, 'show'])->whereNumber('patient')->middleware('permission:patients.update')->name('patients.portal.show');
     });
-
     Route::middleware('permission:patients.create')->group(function () {
         Route::get('/patients/create', [PatientController::class, 'create'])->name('patients.create');
         Route::post('/patients', [PatientController::class, 'store'])->name('patients.store');
     });
-
     Route::middleware('permission:patients.update')->group(function () {
         Route::post('/patients/{patient}/portal/provision', [PatientPortalController::class, 'provision'])->whereNumber('patient')->name('patients.portal.provision');
         Route::post('/patients/{patient}/portal/activate', [PatientPortalController::class, 'activate'])->whereNumber('patient')->name('patients.portal.activate');
@@ -62,10 +51,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/', [ClinicalEncounterController::class, 'index'])->name('index');
         Route::get('/create', [ClinicalEncounterController::class, 'create'])->middleware('permission:clinical.encounters.create')->name('create');
         Route::get('/{encounter}', [ClinicalEncounterController::class, 'show'])->whereNumber('encounter')->name('show');
-        Route::post('/{encounter}/diagnoses', [ClinicalDiagnosisController::class, 'store'])
-            ->middleware('permission:clinical.diagnoses.manage')
-            ->whereNumber('encounter')
-            ->name('diagnoses.store');
+        Route::post('/{encounter}/diagnoses', [ClinicalDiagnosisController::class, 'store'])->middleware('permission:clinical.diagnoses.manage')->whereNumber('encounter')->name('diagnoses.store');
+        Route::post('/{encounter}/treatment-plans', [ClinicalTreatmentPlanController::class, 'store'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('encounter')->name('treatment-plans.store');
+        Route::post('/treatment-plans/{plan}/complete', [ClinicalTreatmentPlanController::class, 'complete'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('plan')->name('treatment-plans.complete');
+        Route::post('/treatment-plans/{plan}/cancel', [ClinicalTreatmentPlanController::class, 'cancel'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('plan')->name('treatment-plans.cancel');
         Route::post('/{encounter}/close', [ClinicalEncounterController::class, 'close'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('close');
         Route::post('/{encounter}/cancel', [ClinicalEncounterController::class, 'cancel'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('cancel');
         Route::post('/', [ClinicalEncounterController::class, 'store'])->middleware('permission:clinical.encounters.create')->name('store');
