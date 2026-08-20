@@ -58,6 +58,8 @@ class ClinicalEncounterController extends Controller
         $encounter->load([
             'patient', 'appointment', 'department', 'servicePoint', 'clinician',
             'diagnoses' => fn ($query) => $query->with('recorder')->latest(),
+            'treatmentPlans' => fn ($query) => $query->with('author')->latest(),
+            'referrals' => fn ($query) => $query->with(['referrer', 'attachments'])->latest(),
         ]);
 
         return view('encounters.show', compact('encounter'));
