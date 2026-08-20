@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\ClinicalReferral;
 use App\Models\ClinicalReferralAttachment;
-use App\Models\ClinicalEncounter;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -24,7 +23,8 @@ class ClinicalReferralAttachmentControllerTest extends TestCase
         $staff->roles()->sync([\App\Models\Role::where('slug', 'doctor')->firstOrFail()->id]);
         $referral = ClinicalReferral::factory()->create();
 
-        $response = $this->actingAs($staff)->post(route('encounters.referrals.attachments.store', $referral), [
+        $response = $this->actingAs($staff)->from('/encounters/'.$referral->encounter_id)->withSession(['_token' => 'test-token'])->post(route('encounters.referrals.attachments.store', $referral), [
+            '_token' => 'test-token',
             'file' => UploadedFile::fake()->create('referral-note.pdf', 100, 'application/pdf'),
         ]);
 
@@ -44,7 +44,8 @@ class ClinicalReferralAttachmentControllerTest extends TestCase
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $referral = ClinicalReferral::factory()->create();
 
-        $response = $this->actingAs($staff)->post(route('encounters.referrals.attachments.store', $referral), [
+        $response = $this->actingAs($staff)->from('/encounters/'.$referral->encounter_id)->withSession(['_token' => 'test-token'])->post(route('encounters.referrals.attachments.store', $referral), [
+            '_token' => 'test-token',
             'file' => UploadedFile::fake()->create('referral-note.pdf', 100, 'application/pdf'),
         ]);
 
@@ -58,9 +59,12 @@ class ClinicalReferralAttachmentControllerTest extends TestCase
 
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $staff->roles()->sync([\App\Models\Role::where('slug', 'doctor')->firstOrFail()->id]);
+        $referral = ClinicalReferral::factory()->create();
         $attachment = ClinicalReferralAttachment::factory()->create(['uploaded_by' => $staff->id]);
 
-        $response = $this->actingAs($staff)->delete(route('encounters.referrals.attachments.destroy', $attachment));
+        $response = $this->actingAs($staff)->from('/encounters/'.$referral->encounter_id)->withSession(['_token' => 'test-token'])->delete(route('encounters.referrals.attachments.destroy', $attachment), [
+            '_token' => 'test-token',
+        ]);
 
         $response->assertRedirect();
         $this->assertDatabaseMissing('clinical_referral_attachments', ['id' => $attachment->id]);
