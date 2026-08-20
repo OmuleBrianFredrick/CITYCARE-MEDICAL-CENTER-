@@ -15,13 +15,13 @@ class ClinicalReferralAttachmentFactory extends Factory
     public function definition(): array
     {
         return [
-            'referral_id' => ClinicalReferral::factory(),
+            'clinical_referral_id' => ClinicalReferral::factory(),
             'uploaded_by' => User::factory()->state(['user_type' => 'staff', 'is_active' => true]),
             'disk' => 'public',
-            'path' => 'referrals/'.fake()->uuid().'.pdf',
-            'original_name' => 'referral-document.pdf',
+            'file_path' => 'referrals/'.fake()->uuid().'.pdf',
+            'file_name' => 'referral-document.pdf',
             'mime_type' => 'application/pdf',
-            'size_bytes' => fake()->numberBetween(1024, 500000),
+            'file_size' => fake()->numberBetween(1024, 500000),
         ];
     }
 }
