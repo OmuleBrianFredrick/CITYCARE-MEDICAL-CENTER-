@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClinicalCareController;
 use App\Http\Controllers\ClinicalDiagnosisController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalReferralAttachmentController;
@@ -54,6 +55,9 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/create', [ClinicalEncounterController::class, 'create'])->middleware('permission:clinical.encounters.create')->name('create');
         Route::get('/{encounter}', [ClinicalEncounterController::class, 'show'])->whereNumber('encounter')->name('show');
         Route::post('/{encounter}/diagnoses', [ClinicalDiagnosisController::class, 'store'])->middleware('permission:clinical.diagnoses.manage')->whereNumber('encounter')->name('diagnoses.store');
+        Route::post('/{encounter}/notes', [ClinicalCareController::class, 'storeNote'])->middleware('permission:clinical.notes.manage')->whereNumber('encounter')->name('notes.store');
+        Route::post('/notes/{note}/finalize', [ClinicalCareController::class, 'finalizeNote'])->middleware('permission:clinical.notes.manage')->whereNumber('note')->name('notes.finalize');
+        Route::post('/{encounter}/vitals', [ClinicalCareController::class, 'storeVitals'])->middleware('permission:clinical.vitals.manage')->whereNumber('encounter')->name('vitals.store');
         Route::post('/{encounter}/treatment-plans', [ClinicalTreatmentPlanController::class, 'store'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('encounter')->name('treatment-plans.store');
         Route::post('/treatment-plans/{plan}/complete', [ClinicalTreatmentPlanController::class, 'complete'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('plan')->name('treatment-plans.complete');
         Route::post('/treatment-plans/{plan}/cancel', [ClinicalTreatmentPlanController::class, 'cancel'])->middleware('permission:clinical.treatment-plans.manage')->whereNumber('plan')->name('treatment-plans.cancel');
