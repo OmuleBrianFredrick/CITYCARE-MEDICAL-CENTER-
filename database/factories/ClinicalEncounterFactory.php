@@ -39,11 +39,11 @@ class ClinicalEncounterFactory extends Factory
             'appointment_id' => $appointment,
             'clinician_id' => $clinician,
             'encounter_number' => 'ENC-'.fake()->unique()->numerify('########'),
-            'encounter_type' => 'outpatient',
+            'type' => ClinicalEncounter::TYPE_OUTPATIENT,
             'status' => ClinicalEncounter::STATUS_OPEN,
             'started_at' => now(),
             'closed_at' => null,
-            'notes' => null,
+            'summary' => null,
         ];
     }
 }
