@@ -14,6 +14,32 @@
         <div><strong>Started</strong><div style="color:#627d98;margin-top:5px">{{ $encounter->started_at?->format('d M Y H:i') }}</div></div>
         <div style="grid-column:1/-1"><strong>Summary</strong><div style="color:#627d98;margin-top:5px">{{ $encounter->summary ?: 'No summary recorded yet.' }}</div></div>
     </div>
+
+    <div class="card" style="margin-top:18px;padding:24px">
+        <h2 style="margin-top:0">Diagnoses</h2>
+        @forelse($encounter->diagnoses as $diagnosis)
+            <div style="padding:12px 0;border-bottom:1px solid #e5e7eb">
+                <div style="display:flex;justify-content:space-between;gap:12px"><strong>{{ $diagnosis->diagnosis }}</strong><span style="font-weight:800;color:#2563eb">{{ ucfirst($diagnosis->type) }}</span></div>
+                <div style="color:#627d98;margin-top:4px">{{ $diagnosis->diagnosis_code ?: 'No diagnosis code' }} · Recorded by {{ $diagnosis->recorder->name }}</div>
+                @if($diagnosis->notes)<div style="color:#627d98;margin-top:6px">{{ $diagnosis->notes }}</div>@endif
+            </div>
+        @empty
+            <p style="color:#627d98">No diagnoses recorded yet.</p>
+        @endforelse
+
+        @if($encounter->isOpen() && auth()->user()->hasPermissionTo('clinical.diagnoses.manage'))
+            <form method="POST" action="{{ route('encounters.diagnoses.store', $encounter) }}" style="display:grid;gap:12px;margin-top:20px">
+                @csrf
+                <h3 style="margin:0">Record diagnosis</h3>
+                <input name="diagnosis" value="{{ old('diagnosis') }}" placeholder="Diagnosis" required style="width:100%;padding:12px;border:1px solid #d9e2ec;border-radius:10px">
+                <input name="diagnosis_code" value="{{ old('diagnosis_code') }}" placeholder="Diagnosis code (optional)" style="width:100%;padding:12px;border:1px solid #d9e2ec;border-radius:10px">
+                <select name="type" style="width:100%;padding:12px;border:1px solid #d9e2ec;border-radius:10px"><option value="primary" @selected(old('type') === 'primary')>Primary diagnosis</option><option value="secondary" @selected(old('type') === 'secondary')>Secondary diagnosis</option></select>
+                <textarea name="notes" rows="4" placeholder="Clinical notes (optional)" style="width:100%;padding:12px;border:1px solid #d9e2ec;border-radius:10px">{{ old('notes') }}</textarea>
+                <button style="justify-self:start;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:800">Record diagnosis</button>
+            </form>
+        @endif
+    </div>
+
     @if($encounter->isOpen())
     <div class="card" style="margin-top:18px;padding:24px">
         <h2 style="margin-top:0">Close encounter</h2>
