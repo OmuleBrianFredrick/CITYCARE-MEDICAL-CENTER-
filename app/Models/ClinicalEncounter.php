@@ -38,8 +38,8 @@ class ClinicalEncounter extends Model
     public function patient(): BelongsTo { return $this->belongsTo(Patient::class); }
     public function appointment(): BelongsTo { return $this->belongsTo(Appointment::class); }
     public function clinician(): BelongsTo { return $this->belongsTo(User::class, 'clinician_id'); }
-    public function notes(): HasMany { return $this->hasMany(ClinicalNote::class); }
-    public function vitals(): HasMany { return $this->hasMany(ClinicalVital::class); }
+    public function notes(): HasMany { return $this->hasMany(ClinicalNote::class, 'encounter_id'); }
+    public function vitals(): HasMany { return $this->hasMany(ClinicalVital::class, 'encounter_id'); }
 
     public function isOpen(): bool { return $this->status === self::STATUS_OPEN; }
     public function isClosed(): bool { return $this->status === self::STATUS_CLOSED; }
