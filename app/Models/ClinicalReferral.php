@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClinicalReferral extends Model
 {
@@ -36,6 +37,11 @@ class ClinicalReferral extends Model
     public function referrer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'referrer_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ClinicalReferralAttachment::class, 'referral_id');
     }
 
     public function isPending(): bool { return $this->status === self::STATUS_PENDING; }
