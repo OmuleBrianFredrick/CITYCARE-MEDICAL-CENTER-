@@ -41,7 +41,7 @@ class ClinicalReferral extends Model
 
     public function attachments(): HasMany
     {
-        return $this->hasMany(ClinicalReferralAttachment::class, 'referral_id');
+        return $this->hasMany(ClinicalReferralAttachment::class, 'clinical_referral_id');
     }
 
     public function isPending(): bool { return $this->status === self::STATUS_PENDING; }
