@@ -50,7 +50,7 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
-            $table->unique(['laboratory_order_id', 'laboratory_test_id']);
+            $table->unique(['laboratory_order_id', 'laboratory_test_id'], 'lab_order_test_unique');
             $table->index('status');
         });
 
