@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClinicalEncounterRequest;
+use App\Http\Requests\StoreClinicalEncounterSummaryRequest;
 use App\Models\Appointment;
 use App\Models\ClinicalEncounter;
 use App\Services\ClinicalEncounterService;
@@ -57,6 +58,8 @@ class ClinicalEncounterController extends Controller
     {
         $encounter->load([
             'patient', 'appointment', 'department', 'servicePoint', 'clinician',
+            'notes' => fn ($query) => $query->with('author')->latest(),
+            'vitals' => fn ($query) => $query->with('recorder')->latest(),
             'diagnoses' => fn ($query) => $query->with('recorder')->latest(),
             'treatmentPlans' => fn ($query) => $query->with('author')->latest(),
             'referrals' => fn ($query) => $query->with(['referrer', 'attachments'])->latest(),
@@ -65,9 +68,9 @@ class ClinicalEncounterController extends Controller
         return view('encounters.show', compact('encounter'));
     }
 
-    public function close(Request $request, ClinicalEncounter $encounter): RedirectResponse
+    public function close(StoreClinicalEncounterSummaryRequest $request, ClinicalEncounter $encounter): RedirectResponse
     {
-        $this->encounters->close($encounter, $request->input('summary'));
+        $this->encounters->close($encounter, $request->validated('summary'));
 
         return back()->with('status', "Encounter {$encounter->encounter_number} closed successfully.");
     }
