@@ -19,18 +19,9 @@ class ClinicalEncounter extends Model
     public const TYPE_FOLLOW_UP = 'follow_up';
     public const TYPE_EMERGENCY = 'emergency';
 
-    protected $fillable = [
-        'facility_id', 'department_id', 'service_point_id', 'patient_id', 'appointment_id', 'clinician_id',
-        'encounter_number', 'type', 'status', 'started_at', 'closed_at', 'summary',
-    ];
+    protected $fillable = ['facility_id', 'department_id', 'service_point_id', 'patient_id', 'appointment_id', 'clinician_id', 'encounter_number', 'type', 'status', 'started_at', 'closed_at', 'summary'];
 
-    protected function casts(): array
-    {
-        return [
-            'started_at' => 'datetime',
-            'closed_at' => 'datetime',
-        ];
-    }
+    protected function casts(): array { return ['started_at' => 'datetime', 'closed_at' => 'datetime']; }
 
     public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
     public function department(): BelongsTo { return $this->belongsTo(Department::class); }
@@ -43,6 +34,7 @@ class ClinicalEncounter extends Model
     public function diagnoses(): HasMany { return $this->hasMany(ClinicalDiagnosis::class, 'encounter_id'); }
     public function treatmentPlans(): HasMany { return $this->hasMany(ClinicalTreatmentPlan::class, 'encounter_id'); }
     public function referrals(): HasMany { return $this->hasMany(ClinicalReferral::class, 'encounter_id'); }
+    public function laboratoryOrders(): HasMany { return $this->hasMany(LaboratoryOrder::class, 'encounter_id'); }
 
     public function isOpen(): bool { return $this->status === self::STATUS_OPEN; }
     public function isClosed(): bool { return $this->status === self::STATUS_CLOSED; }
