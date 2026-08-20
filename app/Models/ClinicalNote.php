@@ -21,8 +21,18 @@ class ClinicalNote extends Model
         return ['finalized_at' => 'datetime'];
     }
 
-    public function encounter(): BelongsTo { return $this->belongsTo(ClinicalEncounter::class); }
-    public function author(): BelongsTo { return $this->belongsTo(User::class, 'author_id'); }
+    public function encounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class, 'encounter_id');
+    }
 
-    public function isFinalized(): bool { return $this->finalized_at !== null; }
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function isFinalized(): bool
+    {
+        return $this->finalized_at !== null;
+    }
 }
