@@ -102,6 +102,13 @@ class BillingService
                 }
             }
 
+            $encounter = isset($data['encounter_id'])
+                ? ClinicalEncounter::query()->findOrFail($data['encounter_id'])
+                : null;
+            if ($encounter !== null) {
+                $this->assertValidEncounter($patient, $encounter);
+            }
+
             $subtotal = round($locked->sum(fn ($c) => (float) $c->subtotal), 2);
             $discountTotal = round($locked->sum(fn ($c) => (float) $c->discount_amount), 2) + (float) ($data['discount_amount'] ?? 0);
             $adjustmentTotal = round($locked->sum(fn ($c) => (float) $c->adjustment_amount) + (float) ($data['adjustment_amount'] ?? 0), 2);
@@ -116,7 +123,7 @@ class BillingService
             $invoice = Invoice::create([
                 'facility_id' => $patient->facility_id,
                 'patient_id' => $patient->id,
-                'encounter_id' => $data['encounter_id'] ?? $locked->first()->encounter_id,
+                'encounter_id' => $encounter?->id ?? $locked->first()->encounter_id,
                 'created_by_id' => $staff->id,
                 'invoice_number' => $this->nextInvoiceNumber(),
                 'status' => Invoice::STATUS_ISSUED,
