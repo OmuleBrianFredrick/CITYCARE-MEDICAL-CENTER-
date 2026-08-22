@@ -7,6 +7,7 @@ use App\Http\Requests\StoreClinicalEncounterSummaryRequest;
 use App\Models\Appointment;
 use App\Models\ClinicalEncounter;
 use App\Models\LaboratoryTest;
+use App\Models\Medication;
 use App\Services\ClinicalEncounterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,8 @@ class ClinicalEncounterController extends Controller
         ]);
 
         $laboratoryTests = collect();
+        $pharmacyMedications = collect();
+
         if ($request->user()?->hasPermissionTo('laboratory.orders.create')) {
             $laboratoryTests = LaboratoryTest::query()
                 ->where('facility_id', $encounter->facility_id)
@@ -86,7 +89,16 @@ class ClinicalEncounterController extends Controller
                 ->get();
         }
 
-        return view('encounters.show', compact('encounter', 'laboratoryTests'));
+        if ($request->user()?->hasPermissionTo('pharmacy.prescriptions.create')) {
+            $pharmacyMedications = Medication::query()
+                ->with('formulations')
+                ->where('facility_id', $encounter->facility_id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('encounters.show', compact('encounter', 'laboratoryTests', 'pharmacyMedications'));
     }
 
     public function close(StoreClinicalEncounterSummaryRequest $request, ClinicalEncounter $encounter): RedirectResponse
