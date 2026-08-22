@@ -75,8 +75,6 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/', [ClinicalEncounterController::class, 'store'])->middleware('permission:clinical.encounters.create')->name('store');
     });
 
-    // Laboratory work uses encounter-oriented URLs, but laboratory staff should not
-    // inherit the broader clinical.encounters.view permission from the clinical group.
     Route::prefix('encounters')->name('encounters.')->group(function () {
         Route::post('/laboratory-order-items/{item}/result', [LaboratoryOrderController::class, 'recordResult'])
             ->middleware('permission:laboratory.results.record')
@@ -87,10 +85,16 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->middleware('permission:laboratory.work.manage')
             ->whereNumber('order')
             ->name('laboratory-orders.cancel');
-    });
 
-    Route::middleware('permission:pharmacy.view')->prefix('encounters')->name('encounters.')->group(function () {
-        Route::get('/{encounter}/pharmacy', [PharmacyController::class, 'show'])->whereNumber('encounter')->name('pharmacy.show');
+        Route::post('/{encounter}/prescriptions', [PharmacyController::class, 'store'])
+            ->middleware('permission:pharmacy.prescriptions.create')
+            ->whereNumber('encounter')
+            ->name('prescriptions.store');
+
+        Route::get('/{encounter}/pharmacy', [PharmacyController::class, 'show'])
+            ->middleware('permission:pharmacy.view')
+            ->whereNumber('encounter')
+            ->name('pharmacy.show');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
