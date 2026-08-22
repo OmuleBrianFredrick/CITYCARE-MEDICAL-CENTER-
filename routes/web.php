@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ClinicalCareController;
 use App\Http\Controllers\ClinicalDiagnosisController;
 use App\Http\Controllers\ClinicalEncounterController;
@@ -95,6 +96,38 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->middleware('permission:pharmacy.view')
             ->whereNumber('encounter')
             ->name('pharmacy.show');
+    });
+
+    Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/patients/{patient}', [BillingController::class, 'show'])
+            ->middleware('permission:billing.view')
+            ->whereNumber('patient')
+            ->name('show');
+
+        Route::post('/patients/{patient}/charges', [BillingController::class, 'storeCharge'])
+            ->middleware('permission:billing.charges.manage')
+            ->whereNumber('patient')
+            ->name('charges.store');
+
+        Route::post('/patients/{patient}/invoices', [BillingController::class, 'storeInvoice'])
+            ->middleware('permission:billing.invoices.manage')
+            ->whereNumber('patient')
+            ->name('invoices.store');
+
+        Route::post('/invoices/{invoice}/payments', [BillingController::class, 'storePayment'])
+            ->middleware('permission:billing.payments.record')
+            ->whereNumber('invoice')
+            ->name('payments.store');
+
+        Route::post('/invoices/{invoice}/cancel', [BillingController::class, 'cancelInvoice'])
+            ->middleware('permission:billing.work.manage')
+            ->whereNumber('invoice')
+            ->name('invoices.cancel');
+
+        Route::post('/invoices/{invoice}/refresh', [BillingController::class, 'refreshInvoice'])
+            ->middleware('permission:billing.work.manage')
+            ->whereNumber('invoice')
+            ->name('invoices.refresh');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
