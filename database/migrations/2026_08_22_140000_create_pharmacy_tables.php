@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            $table->unique(['facility_id', 'name', 'dosage_form']);
+            $table->unique(['facility_id', 'name', 'dosage_form'], 'med_fac_name_form_unique');
         });
 
         Schema::create('medication_formulations', function (Blueprint $table) {
@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('sku')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            $table->unique(['medication_id', 'strength', 'unit', 'pack_size']);
+            $table->unique(['medication_id', 'strength', 'unit', 'pack_size'], 'med_formulation_unique');
         });
 
         Schema::create('prescriptions', function (Blueprint $table) {
