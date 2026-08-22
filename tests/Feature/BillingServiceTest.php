@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Models\BillableService;
 use App\Models\Charge;
 use App\Models\ClinicalEncounter;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\Payment;
+use App\Models\ServicePoint;
 use App\Models\ServicePrice;
 use App\Models\User;
 use App\Services\BillingService;
@@ -71,8 +73,12 @@ class BillingServiceTest extends TestCase
     {
         [, $patient, $service, $price] = $this->billingSetup();
         $staff = $this->staff();
+        $department = Department::factory()->create(['facility_id' => $patient->facility_id]);
+        $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
         $encounter = ClinicalEncounter::create([
             'facility_id' => $patient->facility_id,
+            'department_id' => $department->id,
+            'service_point_id' => $servicePoint->id,
             'patient_id' => $patient->id,
             'clinician_id' => $staff->id,
             'encounter_number' => 'ENC-TEST-001',
