@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClinicalEncounterRequest;
 use App\Http\Requests\StoreClinicalEncounterSummaryRequest;
 use App\Models\Appointment;
+use App\Models\BillableService;
 use App\Models\ClinicalEncounter;
 use App\Models\LaboratoryTest;
 use App\Models\Medication;
@@ -76,10 +77,13 @@ class ClinicalEncounterController extends Controller
                 'items.formulation',
                 'items.dispensingItems.dispensing',
             ])->latest('prescribed_at'),
+            'charges' => fn ($query) => $query->with(['billableService', 'servicePrice'])->latest(),
+            'invoices' => fn ($query) => $query->with(['lineItems.billableService', 'payments'])->latest(),
         ]);
 
         $laboratoryTests = collect();
         $pharmacyMedications = collect();
+        $billableServices = collect();
 
         if ($request->user()?->hasPermissionTo('laboratory.orders.create')) {
             $laboratoryTests = LaboratoryTest::query()
@@ -98,7 +102,32 @@ class ClinicalEncounterController extends Controller
                 ->get();
         }
 
-        return view('encounters.show', compact('encounter', 'laboratoryTests', 'pharmacyMedications'));
+        if ($request->user()?->hasPermissionTo('billing.charges.manage')) {
+            $today = now()->toDateString();
+            $billableServices = BillableService::query()
+                ->with(['prices' => fn ($query) => $query
+                    ->where('facility_id', $encounter->facility_id)
+                    ->where('is_active', true)
+                    ->whereDate('effective_from', '<=', $today)
+                    ->where(function ($q) use ($today) {
+                        $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $today);
+                    })
+                    ->orderByDesc('effective_from')])
+                ->where('facility_id', $encounter->facility_id)
+                ->where('is_active', true)
+                ->whereHas('prices', function ($query) use ($encounter, $today) {
+                    $query->where('facility_id', $encounter->facility_id)
+                        ->where('is_active', true)
+                        ->whereDate('effective_from', '<=', $today)
+                        ->where(function ($q) use ($today) {
+                            $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $today);
+                        });
+                })
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('encounters.show', compact('encounter', 'laboratoryTests', 'pharmacyMedications', 'billableServices'));
     }
 
     public function close(StoreClinicalEncounterSummaryRequest $request, ClinicalEncounter $encounter): RedirectResponse
