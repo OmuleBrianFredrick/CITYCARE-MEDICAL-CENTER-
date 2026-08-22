@@ -16,6 +16,12 @@ class LaboratoryInvalidStateTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
+
     public function test_inactive_laboratory_test_cannot_be_ordered(): void
     {
         $service = app(LaboratoryOrderService::class);
@@ -35,7 +41,11 @@ class LaboratoryInvalidStateTest extends TestCase
         $service = app(LaboratoryOrderService::class);
         $staff = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
-        $test = LaboratoryTest::factory()->create(['is_active' => true]);
+        $otherFacility = \App\Models\Facility::factory()->create();
+        $test = LaboratoryTest::factory()->create([
+            'facility_id' => $otherFacility->id,
+            'is_active' => true,
+        ]);
 
         $this->expectException(ValidationException::class);
         $service->create($encounter, $staff, ['test_ids' => [$test->id]]);
