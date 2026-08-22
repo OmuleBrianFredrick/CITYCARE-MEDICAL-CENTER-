@@ -7,7 +7,6 @@ use App\Models\LaboratoryOrder;
 use App\Models\LaboratoryTest;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,9 +18,10 @@ class LaboratoryOrderControllerTest extends TestCase
     {
         parent::setUp();
 
-        // Keep the application's auth, active-account and permission middleware active.
-        // These HTTP tests exercise authorization and controller workflows, not browser CSRF negotiation.
-        $this->withoutMiddleware(ValidateCsrfToken::class);
+        // The HTTP workflow tests intentionally bypass only CSRF protection so that
+        // authentication, active-account, permission, validation and controller
+        // behavior are exercised directly without browser-token coupling.
+        $this->withoutMiddleware('Illuminate\\Foundation\\Http\\Middleware\\ValidateCsrfToken');
     }
 
     public function test_doctor_can_create_laboratory_order_through_http_workflow(): void
