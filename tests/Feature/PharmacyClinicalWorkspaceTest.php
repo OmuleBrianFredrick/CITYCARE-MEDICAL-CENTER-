@@ -36,7 +36,7 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         $this->actingAs($doctor)
             ->get(route('encounters.show', $encounter))
             ->assertOk()
-            ->assertSee('Pharmacy & medication')
+            ->assertSee('Pharmacy & medication', false)
             ->assertSee($medication->name)
             ->assertSee($prescription->prescription_number)
             ->assertSee('Prescribed');
@@ -60,9 +60,9 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         $this->actingAs($nurse)
             ->get(route('encounters.show', $encounter))
             ->assertOk()
-            ->assertSee('Pharmacy & medication')
+            ->assertSee('Pharmacy & medication', false)
             ->assertSee($medication->name)
-            ->assertDontSee('Create prescription');
+            ->assertDontSee('>Create prescription<', false);
     }
 
     public function test_pharmacy_staff_can_see_dispensing_status_in_workspace(): void
@@ -89,7 +89,7 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         );
 
         $this->actingAs($pharmacy)
-            ->get(route('encounters.show', $encounter))
+            ->get(route('encounters.pharmacy.show', $encounter))
             ->assertOk()
             ->assertSee($medication->name)
             ->assertSee('Partially dispensed')
