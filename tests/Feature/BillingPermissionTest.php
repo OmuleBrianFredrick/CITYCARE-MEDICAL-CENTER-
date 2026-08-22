@@ -28,10 +28,15 @@ class BillingPermissionTest extends TestCase
         $permissionSlugs = Permission::whereIn('slug', $required)->pluck('slug')->sort()->values()->all();
         $this->assertSame(collect($required)->sort()->values()->all(), $permissionSlugs);
 
-        $this->assertSame(
-            $required,
-            Role::where('slug', 'cashier')->firstOrFail()->permissions()->pluck('slug')->intersect($required)->values()->all()
-        );
+        $cashierPermissions = Role::where('slug', 'cashier')->firstOrFail()
+            ->permissions()
+            ->pluck('slug')
+            ->intersect($required)
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(collect($required)->sort()->values()->all(), $cashierPermissions);
 
         $this->assertContains('billing.view', Role::where('slug', 'doctor')->firstOrFail()->permissions()->pluck('slug')->all());
         $this->assertContains('billing.view', Role::where('slug', 'receptionist')->firstOrFail()->permissions()->pluck('slug')->all());
