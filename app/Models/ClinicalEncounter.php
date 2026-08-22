@@ -35,6 +35,7 @@ class ClinicalEncounter extends Model
     public function treatmentPlans(): HasMany { return $this->hasMany(ClinicalTreatmentPlan::class, 'encounter_id'); }
     public function referrals(): HasMany { return $this->hasMany(ClinicalReferral::class, 'encounter_id'); }
     public function laboratoryOrders(): HasMany { return $this->hasMany(LaboratoryOrder::class, 'encounter_id'); }
+    public function prescriptions(): HasMany { return $this->hasMany(Prescription::class, 'encounter_id'); }
 
     public function isOpen(): bool { return $this->status === self::STATUS_OPEN; }
     public function isClosed(): bool { return $this->status === self::STATUS_CLOSED; }
