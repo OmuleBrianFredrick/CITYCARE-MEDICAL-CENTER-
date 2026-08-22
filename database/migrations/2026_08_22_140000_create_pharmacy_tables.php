@@ -8,6 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        foreach ([
+            'medication_dispensing_items',
+            'medication_dispensings',
+            'prescription_items',
+            'prescriptions',
+            'medication_formulations',
+            'medications',
+        ] as $table) {
+            Schema::dropIfExists($table);
+        }
+
         Schema::create('medications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('facility_id')->constrained()->cascadeOnDelete();
