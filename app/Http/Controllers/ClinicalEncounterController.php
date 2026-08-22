@@ -6,6 +6,7 @@ use App\Http\Requests\StoreClinicalEncounterRequest;
 use App\Http\Requests\StoreClinicalEncounterSummaryRequest;
 use App\Models\Appointment;
 use App\Models\ClinicalEncounter;
+use App\Models\LaboratoryTest;
 use App\Services\ClinicalEncounterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,9 +64,24 @@ class ClinicalEncounterController extends Controller
             'diagnoses' => fn ($query) => $query->with('recorder')->latest(),
             'treatmentPlans' => fn ($query) => $query->with('author')->latest(),
             'referrals' => fn ($query) => $query->with(['referrer', 'attachments'])->latest(),
+            'laboratoryOrders' => fn ($query) => $query->with([
+                'orderedBy',
+                'items.laboratoryTest',
+                'items.result.recordedBy',
+            ])->latest('ordered_at'),
         ]);
 
-        return view('encounters.show', compact('encounter'));
+        $laboratoryTests = collect();
+
+        if ($requestUser = request()->user(); $requestUser?->hasPermissionTo('laboratory.orders.create')) {
+            $laboratoryTests = LaboratoryTest::query()
+                ->where('facility_id', $encounter->facility_id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('encounters.show', compact('encounter', 'laboratoryTests'));
     }
 
     public function close(StoreClinicalEncounterSummaryRequest $request, ClinicalEncounter $encounter): RedirectResponse
