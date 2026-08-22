@@ -69,10 +69,15 @@ class ClinicalEncounterController extends Controller
                 'items.laboratoryTest',
                 'items.result.recordedBy',
             ])->latest('ordered_at'),
+            'prescriptions' => fn ($query) => $query->with([
+                'prescriber',
+                'items.medication',
+                'items.formulation',
+                'items.dispensingItems.dispensing',
+            ])->latest('prescribed_at'),
         ]);
 
         $laboratoryTests = collect();
-
         if ($request->user()?->hasPermissionTo('laboratory.orders.create')) {
             $laboratoryTests = LaboratoryTest::query()
                 ->where('facility_id', $encounter->facility_id)
