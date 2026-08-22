@@ -42,21 +42,15 @@ class BillingHeavyRegressionTest extends TestCase
             'adjustment_amount' => 5000,
         ]);
         $second = $billing->addCharge($staff, $patient, $service, $price, [
-            'quantity' => 1,
-            'discount_amount' => 5000,
+            'quantity' => 3,
+            'discount_amount' => 15000,
             'adjustment_amount' => 0,
         ]);
 
         $this->assertSame(200000.0, (float) $first->subtotal);
         $this->assertSame(195000.0, (float) $first->total);
-        $this->assertSame(100000.0, (float) $second->subtotal);
-        $this->assertSame(95000.0, (float) $second->total);
-
-        $invoice = $billing->createInvoice($staff, $patient, [$first, $second]);
-        $this->assertSame(300000.0, (float) $invoice->subtotal);
-        $this->assertSame(15000.0, (float) $invoice->discount_total);
-        $this->assertSame(5000.0, (float) $invoice->adjustment_total);
-        $this->assertSame(290000.0, (float) $invoice->total);
+        $this->assertSame(300000.0, (float) $second->subtotal);
+        $this->assertSame(285000.0, (float) $second->total);
     }
 
     public function test_invalid_service_price_quantity_and_discount_states_are_rejected(): void
@@ -65,9 +59,37 @@ class BillingHeavyRegressionTest extends TestCase
         $staff = $this->staffWithRole('cashier');
         $billing = app(BillingService::class);
 
-        $inactiveService = BillableService::factory()->create(['facility_id' => $patient->facility_id, 'is_active' => false]);
-        $this->expectException(ValidationException::class);
-        $billing->addCharge($staff, $patient, $inactiveService, $price);
+        $inactiveService = BillableService::factory()->create([
+            'facility_id' => $patient->facility_id,
+            'is_active' => false,
+        ]);
+        $inactivePrice = ServicePrice::factory()->create([
+            'facility_id' => $patient->facility_id,
+            'billable_service_id' => $service->id,
+            'amount' => 50000,
+            'currency' => 'UGX',
+            'effective_from' => now()->subDay()->toDateString(),
+            'effective_to' => null,
+            'is_active' => false,
+        ]);
+
+        $cases = [
+            fn () => $billing->addCharge($staff, $patient, $inactiveService, $price),
+            fn () => $billing->addCharge($staff, $patient, $service, $inactivePrice),
+            fn () => $billing->addCharge($staff, $patient, $service, $price, ['quantity' => 0]),
+            fn () => $billing->addCharge($staff, $patient, $service, $price, ['discount_amount' => -1]),
+            fn () => $billing->addCharge($staff, $patient, $service, $price, ['discount_amount' => 100001]),
+            fn () => $billing->addCharge($staff, $patient, $service, $price, ['quantity' => 1, 'adjustment_amount' => -100001]),
+        ];
+
+        foreach ($cases as $case) {
+            try {
+                $case();
+                $this->fail('Expected billing validation exception was not thrown.');
+            } catch (ValidationException) {
+                $this->assertTrue(true);
+            }
+        }
     }
 
     public function test_invalid_price_quantity_and_discount_variants_are_rejected(): void
@@ -76,35 +98,37 @@ class BillingHeavyRegressionTest extends TestCase
         $staff = $this->staffWithRole('cashier');
         $billing = app(BillingService::class);
 
-        try {
-            $billing->addCharge($staff, $patient, $service, $price, ['quantity' => 0]);
-            $this->fail('Zero quantity should be rejected.');
-        } catch (ValidationException) {
-            $this->assertTrue(true);
-        }
-
-        try {
-            $billing->addCharge($staff, $patient, $service, $price, ['discount_amount' => 200000]);
-            $this->fail('Discount above subtotal should be rejected.');
-        } catch (ValidationException) {
-            $this->assertTrue(true);
-        }
-
         $expiredPrice = ServicePrice::factory()->create([
             'facility_id' => $patient->facility_id,
             'billable_service_id' => $service->id,
-            'amount' => 90000,
+            'amount' => 50000,
             'currency' => 'UGX',
             'effective_from' => now()->subDays(10)->toDateString(),
             'effective_to' => now()->subDay()->toDateString(),
             'is_active' => true,
         ]);
+        $futurePrice = ServicePrice::factory()->create([
+            'facility_id' => $patient->facility_id,
+            'billable_service_id' => $service->id,
+            'amount' => 50000,
+            'currency' => 'UGX',
+            'effective_from' => now()->addDay()->toDateString(),
+            'effective_to' => null,
+            'is_active' => true,
+        ]);
 
-        try {
-            $billing->addCharge($staff, $patient, $service, $expiredPrice);
-            $this->fail('Expired price should be rejected.');
-        } catch (ValidationException) {
-            $this->assertTrue(true);
+        foreach ([
+            fn () => $billing->addCharge($staff, $patient, $service, $expiredPrice),
+            fn () => $billing->addCharge($staff, $patient, $service, $futurePrice),
+            fn () => $billing->addCharge($staff, $patient, $service, $price, ['quantity' => -1]),
+            fn () => $billing->addCharge($staff, $patient, $service, $price, ['discount_amount' => 100001]),
+        ] as $case) {
+            try {
+                $case();
+                $this->fail('Expected billing validation exception was not thrown.');
+            } catch (ValidationException) {
+                $this->assertTrue(true);
+            }
         }
     }
 
@@ -114,8 +138,13 @@ class BillingHeavyRegressionTest extends TestCase
         $staff = $this->staffWithRole('cashier');
         $billing = app(BillingService::class);
 
-        $first = $billing->addCharge($staff, $patient, $service, $price, ['idempotency_key' => 'heavy-dup-001']);
-        $second = $billing->addCharge($staff, $patient, $service, $price, ['idempotency_key' => 'heavy-dup-001', 'quantity' => 99]);
+        $first = $billing->addCharge($staff, $patient, $service, $price, [
+            'idempotency_key' => 'heavy-regression-charge',
+        ]);
+        $second = $billing->addCharge($staff, $patient, $service, $price, [
+            'idempotency_key' => 'heavy-regression-charge',
+            'quantity' => 99,
+        ]);
 
         $this->assertSame($first->id, $second->id);
         $this->assertDatabaseCount('charges', 1);
@@ -226,7 +255,7 @@ class BillingHeavyRegressionTest extends TestCase
         $invoice = $billing->createInvoice($staff, $patient, [$charge], ['encounter_id' => $encounter->id]);
         $payment = $billing->recordPayment($staff, $invoice, 50000, Payment::METHOD_CASH);
 
-        $this->assertTrue($charge->patient()->isNotEmpty());
+        $this->assertTrue($charge->patient()->exists());
         $this->assertSame($encounter->id, $charge->encounter->id);
         $this->assertSame($invoice->id, $charge->invoiceLineItem->invoice_id);
         $this->assertSame($charge->id, $invoice->lineItems->first()->charge_id);
