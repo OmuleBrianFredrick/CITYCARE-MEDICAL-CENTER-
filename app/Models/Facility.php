@@ -21,13 +21,10 @@ class Facility extends Model
         return ['is_active' => 'boolean'];
     }
 
-    public function departments(): HasMany
-    {
-        return $this->hasMany(Department::class);
-    }
-
-    public function medications(): HasMany
-    {
-        return $this->hasMany(Medication::class);
-    }
+    public function departments(): HasMany { return $this->hasMany(Department::class); }
+    public function medications(): HasMany { return $this->hasMany(Medication::class); }
+    public function billableServices(): HasMany { return $this->hasMany(BillableService::class); }
+    public function servicePrices(): HasMany { return $this->hasMany(ServicePrice::class); }
+    public function charges(): HasMany { return $this->hasMany(Charge::class); }
+    public function invoices(): HasMany { return $this->hasMany(Invoice::class); }
 }

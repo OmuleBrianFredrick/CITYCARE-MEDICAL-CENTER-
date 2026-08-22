@@ -105,6 +105,25 @@ The local development environment uses the MySQL database:
 
 CityCare domain migrations are introduced in controlled stages so relationships, constraints, authorization boundaries, and business rules can be validated as each module is built.
 
+## Billing Foundation — Phase 11.1
+
+The financial domain foundation now includes:
+
+- Billable services/items scoped to facilities
+- Versioned service pricing with effective dates and currency
+- Patient- and encounter-linked charges
+- Invoice/bill records with lifecycle status
+- Invoice line items with historical price snapshots
+- Discount and adjustment amounts at charge, line-item, and invoice level
+- Fixed-precision subtotals, totals, paid amounts, and outstanding balances
+- Payment records with method and lifecycle status
+- Receipt and transaction references
+- Staff/cashier/accounting-user authorship links for financial actions
+- Facility relationships and referential-integrity constraints
+- Laravel migrations, Eloquent models, relationships, and model factories
+
+Phase 11.1 intentionally stops at the financial data foundation. Billing business rules, granular financial permissions, HTTP workflows, clinical workspace integration, and the heavy regression gate remain in the subsequent Phase 11 stages.
+
 ## UI Direction
 
 The visual language is based on a premium medical-center experience:
@@ -129,7 +148,7 @@ Testing is layered:
 4. Local browser testing for complete user journeys and visual/interaction QA.
 5. GitHub CI for reproducible automated checks as the pipeline is established.
 
-Current automated coverage includes access-control seeding, role/permission resolution, patient/staff distinction, authentication, active-account enforcement, login throttling, authorization middleware, logout behavior, employee invitation models/services, organization models/services, and organization authorization workflows.
+Current automated coverage includes access-control seeding, role/permission resolution, patient/staff distinction, authentication, active-account enforcement, login throttling, authorization middleware, logout behavior, employee invitation models/services, organization models/services, organization authorization workflows, and clinical/laboratory/pharmacy regression coverage.
 
 ## Development Sequence
 
@@ -185,18 +204,20 @@ A module is not considered complete merely because its pages render. It must hav
 - Default CityCare organization seed data implemented
 - Protected organization administration routes implemented
 - Premium organization administration workspace implemented
-- Authentication/access-control feature tests added
-- Employee invitation feature tests added
-- Organization service/controller feature tests added
-- Architecture specification added under `docs/ARCHITECTURE.md`
+- Clinical core implemented and integrated
+- Laboratory workflow implemented and regression-tested
+- Pharmacy workflow implemented and regression-tested
+- Billing & Payments Phase 11.1 financial database/model foundation implemented
 
 ### Current Phase
 
-**Phase 3 — Organization and Departments**
+**Phase 11 — Billing & Payments**
 
-Current chapter: **Organization Configuration & Operational Structure**.
+Current chapter: **11.1 — Billing architecture & database foundation**.
 
-The organization foundation is implemented and undergoing local verification. The remaining work in this phase includes completing staff organizational assignment workflows, operational settings refinement, organization policies/audit boundaries, and final browser verification before moving into Patient Management.
+Implemented in 11.1: billable services, versioned service prices, charges, invoices, invoice line items, payments, facility/patient/encounter/staff relationships, financial lifecycle constants, migrations, Eloquent relationships, and factories.
+
+Next chapter: **11.2 — Billing service layer**, where the financial business rules will be implemented before permissions, HTTP workflows, clinical integration, and the final Phase 11 regression gate.
 
 ## Local Setup
 

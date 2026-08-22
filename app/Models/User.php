@@ -30,6 +30,13 @@ class User extends Authenticatable
     public function invitationsSent(): HasMany { return $this->hasMany(EmployeeInvitation::class, 'invited_by'); }
     public function appointmentsAsProvider(): HasMany { return $this->hasMany(Appointment::class, 'provider_id'); }
     public function appointmentsCreated(): HasMany { return $this->hasMany(Appointment::class, 'created_by'); }
+    public function chargesCreated(): HasMany { return $this->hasMany(Charge::class, 'created_by_id'); }
+    public function chargesVoided(): HasMany { return $this->hasMany(Charge::class, 'voided_by_id'); }
+    public function invoicesCreated(): HasMany { return $this->hasMany(Invoice::class, 'created_by_id'); }
+    public function invoicesIssued(): HasMany { return $this->hasMany(Invoice::class, 'issued_by_id'); }
+    public function invoicesCancelled(): HasMany { return $this->hasMany(Invoice::class, 'cancelled_by_id'); }
+    public function paymentsReceived(): HasMany { return $this->hasMany(Payment::class, 'received_by_id'); }
+    public function paymentsVoided(): HasMany { return $this->hasMany(Payment::class, 'voided_by_id'); }
 
     public function hasRole(string|array $roles): bool
     {
