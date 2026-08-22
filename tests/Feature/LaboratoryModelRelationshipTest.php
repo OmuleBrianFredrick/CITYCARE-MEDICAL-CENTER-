@@ -41,7 +41,7 @@ class LaboratoryModelRelationshipTest extends TestCase
 
         $this->assertSame($order->id, $item->order->id);
         $this->assertSame($test->id, $item->laboratoryTest->id);
-        $this->assertSame($item->id, $result->item->id);
+        $this->assertSame($item->id, $result->orderItem->id);
         $this->assertSame($encounter->id, $order->encounter->id);
         $this->assertSame($encounter->patient_id, $order->patient_id);
     }
