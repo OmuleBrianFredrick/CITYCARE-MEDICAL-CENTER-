@@ -107,7 +107,7 @@ CityCare domain migrations are introduced in controlled stages so relationships,
 
 ## Billing Foundation — Phase 11.1
 
-The financial domain foundation now includes:
+The financial domain foundation includes:
 
 - Billable services/items scoped to facilities
 - Versioned service pricing with effective dates and currency
@@ -122,7 +122,33 @@ The financial domain foundation now includes:
 - Facility relationships and referential-integrity constraints
 - Laravel migrations, Eloquent models, relationships, and model factories
 
-Phase 11.1 intentionally stops at the financial data foundation. Billing business rules, granular financial permissions, HTTP workflows, clinical workspace integration, and the heavy regression gate remain in the subsequent Phase 11 stages.
+## Billing Service Layer — Phase 11.2
+
+`App\Services\BillingService` now owns the core financial business rules while controllers remain thin.
+
+Implemented rules include:
+
+- Validate active staff and active patients before billing operations
+- Validate facility ownership and active billable services
+- Validate service-price ownership, activity, positive amount, currency and effective-date window
+- Add one or multiple billable charges
+- Validate positive quantities and non-negative discounts
+- Calculate charge subtotal and final total deterministically
+- Reject discounts greater than the subtotal and negative resulting totals
+- Support idempotency keys for duplicate charge-generation protection
+- Reject invalid, closed, cancelled, cross-patient, or cross-facility encounters
+- Create invoices transactionally from pending charges
+- Prevent invoicing an already invoiced/voided charge
+- Preserve charge price snapshots in invoice line items
+- Calculate invoice subtotal, discounts, adjustments, total and balance due
+- Record completed payments transactionally
+- Support partial and full payment
+- Prevent payment amounts above the outstanding balance
+- Transition invoices from issued → partially paid → paid
+- Generate unique invoice and receipt references
+- Cancel unpaid invoices with an explicit reason and release their charges back to pending
+- Prevent cancellation after payment has been recorded
+- Recalculate eligible invoice totals transactionally without allowing balances to become inconsistent
 
 ## UI Direction
 
@@ -148,7 +174,7 @@ Testing is layered:
 4. Local browser testing for complete user journeys and visual/interaction QA.
 5. GitHub CI for reproducible automated checks as the pipeline is established.
 
-Current automated coverage includes access-control seeding, role/permission resolution, patient/staff distinction, authentication, active-account enforcement, login throttling, authorization middleware, logout behavior, employee invitation models/services, organization models/services, organization authorization workflows, and clinical/laboratory/pharmacy regression coverage.
+Phase 11.2 includes dedicated `BillingServiceTest` coverage for charge calculations, active-state enforcement, closed encounters, idempotency, invoice creation, duplicate invoicing, partial/full payments, overpayment prevention, and invoice cancellation.
 
 ## Development Sequence
 
@@ -208,16 +234,18 @@ A module is not considered complete merely because its pages render. It must hav
 - Laboratory workflow implemented and regression-tested
 - Pharmacy workflow implemented and regression-tested
 - Billing & Payments Phase 11.1 financial database/model foundation implemented
+- Billing & Payments Phase 11.2 service layer implemented
+- Billing service feature tests added
 
 ### Current Phase
 
 **Phase 11 — Billing & Payments**
 
-Current chapter: **11.1 — Billing architecture & database foundation**.
+Current chapter: **11.2 — Billing service layer**.
 
-Implemented in 11.1: billable services, versioned service prices, charges, invoices, invoice line items, payments, facility/patient/encounter/staff relationships, financial lifecycle constants, migrations, Eloquent relationships, and factories.
+Implemented in 11.2: transactional charge generation, service/price validation, idempotent charge creation, invoice generation, financial calculations, partial/full payments, overpayment prevention, invoice lifecycle transitions, cancellation rules, active staff/patient enforcement, encounter-state enforcement, and dedicated billing service tests.
 
-Next chapter: **11.2 — Billing service layer**, where the financial business rules will be implemented before permissions, HTTP workflows, clinical integration, and the final Phase 11 regression gate.
+Next chapter: **11.3 — Permissions & access control**, where the financial permission matrix will be introduced without unnecessary permission duplication.
 
 ## Local Setup
 
