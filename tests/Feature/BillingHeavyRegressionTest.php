@@ -68,7 +68,7 @@ class BillingHeavyRegressionTest extends TestCase
             'billable_service_id' => $service->id,
             'amount' => 50000,
             'currency' => 'UGX',
-            'effective_from' => now()->subDay()->toDateString(),
+            'effective_from' => now()->subDays(2)->toDateString(),
             'effective_to' => null,
             'is_active' => false,
         ]);
@@ -160,8 +160,19 @@ class BillingHeavyRegressionTest extends TestCase
         $paidInvoice = $billing->createInvoice($staff, $patient, [$charge]);
         $billing->recordPayment($staff, $paidInvoice, 100000, Payment::METHOD_CASH);
 
-        $this->expectException(ValidationException::class);
-        $billing->cancelInvoice($staff, $paidInvoice, 'Cannot cancel a completed invoice.');
+        try {
+            $billing->cancelInvoice($staff, $paidInvoice, 'Cannot cancel a completed invoice.');
+            $this->fail('Paid invoice cancellation should be rejected.');
+        } catch (ValidationException) {
+            $this->assertTrue(true);
+        }
+
+        try {
+            $billing->recordPayment($staff, $paidInvoice, 1, Payment::METHOD_CASH);
+            $this->fail('Payment against a completed invoice should be rejected.');
+        } catch (ValidationException) {
+            $this->assertTrue(true);
+        }
 
         $secondCharge = $billing->addCharge($staff, $patient, $service, $price);
         $cancelledInvoice = $billing->createInvoice($staff, $patient, [$secondCharge]);
@@ -185,15 +196,18 @@ class BillingHeavyRegressionTest extends TestCase
         $charge = $billing->addCharge($staff, $patient, $service, $price);
         $invoice = $billing->createInvoice($staff, $patient, [$charge]);
 
-        $this->expectException(ValidationException::class);
         try {
             $billing->recordPayment($inactive, $invoice, 1, Payment::METHOD_CASH);
-        } finally {
-            try {
-                $billing->cancelInvoice($inactive, $invoice, 'Inactive staff test.');
-            } catch (ValidationException) {
-                // Expected; the first exception is the assertion target.
-            }
+            $this->fail('Inactive staff payment should be rejected.');
+        } catch (ValidationException) {
+            $this->assertTrue(true);
+        }
+
+        try {
+            $billing->cancelInvoice($inactive, $invoice, 'Inactive staff test.');
+            $this->fail('Inactive staff cancellation should be rejected.');
+        } catch (ValidationException) {
+            $this->assertTrue(true);
         }
     }
 
