@@ -12,10 +12,16 @@ class MedicationDispensingFactory extends Factory
 {
     public function definition(): array
     {
+        $patient = Patient::factory()->create();
+        $prescription = Prescription::factory()->create([
+            'facility_id' => $patient->facility_id,
+            'patient_id' => $patient->id,
+        ]);
+
         return [
-            'facility_id' => fn () => Patient::factory()->create()->facility_id,
-            'prescription_id' => Prescription::factory(),
-            'patient_id' => Patient::factory(),
+            'facility_id' => $patient->facility_id,
+            'prescription_id' => $prescription->id,
+            'patient_id' => $patient->id,
             'dispensed_by' => User::factory(),
             'dispensing_number' => 'DISP-'.strtoupper(fake()->unique()->numerify('########')),
             'status' => 'completed',
