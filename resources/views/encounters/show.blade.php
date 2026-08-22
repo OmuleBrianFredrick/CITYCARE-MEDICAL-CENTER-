@@ -122,6 +122,52 @@
         </div>
     </div>
 
+    @if(auth()->user()?->hasPermissionTo('billing.view'))
+        <div class="card" style="margin-top:18px;padding:24px">
+            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start"><div><div style="color:#2563eb;font-size:.74rem;font-weight:900;letter-spacing:.14em">BILLING</div><h2 style="margin:6px 0 0">Encounter billing</h2><p style="color:#627d98;margin-bottom:0">View charges, invoice status, totals, payments, and outstanding balance without exposing payment-management authority.</p></div><div style="padding:7px 11px;border-radius:999px;background:#f1f5f9;font-weight:800">{{ $encounter->charges->count() }} {{ Str::plural('charge', $encounter->charges->count()) }}</div></div>
+
+            @if($encounter->isOpen() && auth()->user()?->hasPermissionTo('billing.charges.manage'))
+                <form method="POST" action="{{ route('billing.charges.store', $encounter->patient) }}" style="margin-top:20px;padding:18px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff">
+                    @csrf
+                    <input type="hidden" name="encounter_id" value="{{ $encounter->id }}">
+                    <h3 style="margin-top:0">Link clinical activity to a charge</h3>
+                    @if($billableServices->isNotEmpty())
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+                            <label><strong>Billable service</strong><select name="billable_service_id" required style="width:100%;margin-top:6px"><option value="">Select service</option>@foreach($billableServices as $service)<option value="{{ $service->id }}">{{ $service->name }}{{ $service->code ? ' · '.$service->code : '' }}</option>@endforeach</select></label>
+                            <label><strong>Current price</strong><select name="service_price_id" required style="width:100%;margin-top:6px"><option value="">Select price</option>@foreach($billableServices as $service)@foreach($service->prices as $price)<option value="{{ $price->id }}">{{ $service->name }} · {{ number_format((float) $price->amount, 2) }} {{ $price->currency }}</option>@endforeach @endforeach</select></label>
+                            <label><strong>Quantity</strong><input name="quantity" type="number" min="0.001" step="0.001" value="1" required style="width:100%;margin-top:6px"></label>
+                        </div>
+                        <textarea name="description" rows="2" placeholder="Clinical service or billing description…" style="width:100%;margin-top:12px"></textarea>
+                        <button style="margin-top:10px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:800">Create linked charge</button>
+                    @else
+                        <p style="color:#627d98;margin-bottom:0">No active billable services with current prices are configured for this facility.</p>
+                    @endif
+                </form>
+            @endif
+
+            <div style="margin-top:20px">
+                @forelse($encounter->charges as $charge)
+                    <div style="padding:14px 0;border-bottom:1px solid #e5e7eb">
+                        <div style="display:flex;justify-content:space-between;gap:12px"><div><strong>{{ $charge->billableService?->name ?? 'Clinical charge' }}</strong><div style="color:#627d98;margin-top:4px">{{ $charge->description }} · Qty {{ $charge->quantity }} · {{ number_format((float) $charge->total, 2) }} {{ $charge->currency }}</div></div><span style="font-weight:800;color:#2563eb">{{ ucfirst($charge->status) }}</span></div>
+                    </div>
+                @empty
+                    <p style="color:#627d98;margin-top:20px">No charges have been linked to this encounter.</p>
+                @endforelse
+            </div>
+
+            <div style="margin-top:20px">
+                @forelse($encounter->invoices as $invoice)
+                    <div style="padding:16px;border:1px solid #e5e7eb;border-radius:10px;margin-top:10px">
+                        <div style="display:flex;justify-content:space-between;gap:12px"><div><strong>{{ $invoice->invoice_number }}</strong><div style="color:#627d98;margin-top:4px">{{ $invoice->lineItems->count() }} {{ Str::plural('line item', $invoice->lineItems->count()) }}</div></div><span style="font-weight:800;color:#2563eb">{{ str_replace('_', ' ', ucfirst($invoice->status)) }}</span></div>
+                        <div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><div><strong>Invoice total</strong><div style="color:#627d98;margin-top:4px">{{ number_format((float) $invoice->total, 2) }} {{ $invoice->currency }}</div></div><div><strong>Amount paid</strong><div style="color:#627d98;margin-top:4px">{{ number_format((float) $invoice->paid_amount, 2) }} {{ $invoice->currency }}</div></div><div><strong>Outstanding balance</strong><div style="color:#627d98;margin-top:4px">{{ number_format((float) $invoice->balance_due, 2) }} {{ $invoice->currency }}</div></div></div>
+                    </div>
+                @empty
+                    <p style="color:#627d98;margin-top:20px">No invoices have been issued for this encounter.</p>
+                @endforelse
+            </div>
+        </div>
+    @endif
+
     @if($encounter->treatmentPlans->isNotEmpty())<div class="card" style="margin-top:18px;padding:24px"><h2 style="margin-top:0">Treatment plans</h2>@forelse($encounter->treatmentPlans as $plan)<div style="padding:12px 0;border-bottom:1px solid #e5e7eb"><strong>Plan #{{ $plan->id }}</strong><span style="margin-left:8px;font-weight:800;color:#2563eb">{{ ucfirst($plan->status) }}</span><div style="color:#627d98;margin-top:4px">{{ $plan->plan }}</div>@if($plan->follow_up_date)<div style="color:#627d98;margin-top:4px">Follow-up: {{ $plan->follow_up_date->format('d M Y') }}</div>@endif<div style="color:#627d98;margin-top:4px">Created by {{ $plan->author->name }}</div></div>@empty<p style="color:#627d98">No treatment plans recorded yet.</p>@endforelse</div>@endif
 
     @if($encounter->referrals->isNotEmpty())<div class="card" style="margin-top:18px;padding:24px"><h2 style="margin-top:0">Referrals</h2>@forelse($encounter->referrals as $referral)<div style="padding:12px 0;border-bottom:1px solid #e5e7eb"><strong>Referral #{{ $referral->id }} · {{ $referral->referred_to }}</strong><span style="margin-left:8px;font-weight:800;color:#2563eb">{{ ucfirst($referral->status) }}</span><div style="color:#627d98;margin-top:4px">{{ $referral->reason }}</div><div style="color:#627d98;margin-top:4px">Referred by {{ $referral->referrer->name }}</div>@if($referral->attachments->isNotEmpty())<div style="margin-top:8px"><strong>Attachments</strong>@foreach($referral->attachments as $attachment)<div style="margin-top:4px">{{ $attachment->file_name }}</div>@endforeach</div>@endif</div>@empty<p style="color:#627d98">No referrals recorded yet.</p>@endforelse</div>@endif
