@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,26 +26,31 @@ class PharmacyPermissionTest extends TestCase
             $this->assertDatabaseHas('permissions', ['slug' => $slug]);
         }
 
-        $doctor = Role::where('slug', 'doctor')->firstOrFail();
-        $nurse = Role::where('slug', 'nurse')->firstOrFail();
-        $pharmacy = Role::where('slug', 'pharmacy')->firstOrFail();
-        $administrator = Role::where('slug', 'administrator')->firstOrFail();
+        $doctor = Role::where('slug', 'doctor')->with('permissions')->firstOrFail();
+        $nurse = Role::where('slug', 'nurse')->with('permissions')->firstOrFail();
+        $pharmacy = Role::where('slug', 'pharmacy')->with('permissions')->firstOrFail();
+        $administrator = Role::where('slug', 'administrator')->with('permissions')->firstOrFail();
 
-        $this->assertTrue($doctor->hasPermissionTo('pharmacy.view'));
-        $this->assertTrue($doctor->hasPermissionTo('pharmacy.prescriptions.create'));
-        $this->assertFalse($doctor->hasPermissionTo('pharmacy.dispensing.manage'));
-        $this->assertFalse($doctor->hasPermissionTo('pharmacy.work.manage'));
+        $doctorPermissions = $doctor->permissions->pluck('slug')->all();
+        $nursePermissions = $nurse->permissions->pluck('slug')->all();
+        $pharmacyPermissions = $pharmacy->permissions->pluck('slug')->all();
+        $administratorPermissions = $administrator->permissions->pluck('slug')->all();
 
-        $this->assertTrue($nurse->hasPermissionTo('pharmacy.view'));
-        $this->assertFalse($nurse->hasPermissionTo('pharmacy.prescriptions.create'));
+        $this->assertContains('pharmacy.view', $doctorPermissions);
+        $this->assertContains('pharmacy.prescriptions.create', $doctorPermissions);
+        $this->assertNotContains('pharmacy.dispensing.manage', $doctorPermissions);
+        $this->assertNotContains('pharmacy.work.manage', $doctorPermissions);
 
-        $this->assertTrue($pharmacy->hasPermissionTo('pharmacy.view'));
-        $this->assertTrue($pharmacy->hasPermissionTo('pharmacy.dispensing.manage'));
-        $this->assertTrue($pharmacy->hasPermissionTo('pharmacy.work.manage'));
-        $this->assertTrue($pharmacy->hasPermissionTo('pharmacy.manage'));
+        $this->assertContains('pharmacy.view', $nursePermissions);
+        $this->assertNotContains('pharmacy.prescriptions.create', $nursePermissions);
+
+        $this->assertContains('pharmacy.view', $pharmacyPermissions);
+        $this->assertContains('pharmacy.dispensing.manage', $pharmacyPermissions);
+        $this->assertContains('pharmacy.work.manage', $pharmacyPermissions);
+        $this->assertContains('pharmacy.manage', $pharmacyPermissions);
 
         foreach ($expectedPermissions as $slug) {
-            $this->assertTrue($administrator->hasPermissionTo($slug));
+            $this->assertContains($slug, $administratorPermissions);
         }
     }
 }
