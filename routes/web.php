@@ -12,6 +12,7 @@ use App\Http\Controllers\LaboratoryOrderController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientPortalController;
+use App\Http\Controllers\PharmacyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -86,6 +87,10 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->middleware('permission:laboratory.work.manage')
             ->whereNumber('order')
             ->name('laboratory-orders.cancel');
+    });
+
+    Route::middleware('permission:pharmacy.view')->prefix('encounters')->name('encounters.')->group(function () {
+        Route::get('/{encounter}/pharmacy', [PharmacyController::class, 'show'])->whereNumber('encounter')->name('pharmacy.show');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
