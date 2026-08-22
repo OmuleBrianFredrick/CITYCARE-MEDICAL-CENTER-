@@ -25,4 +25,9 @@ class Facility extends Model
     {
         return $this->hasMany(Department::class);
     }
+
+    public function medications(): HasMany
+    {
+        return $this->hasMany(Medication::class);
+    }
 }
