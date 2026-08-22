@@ -25,6 +25,8 @@ class Patient extends Model
     public function appointments(): HasMany { return $this->hasMany(Appointment::class); }
     public function clinicalEncounters(): HasMany { return $this->hasMany(ClinicalEncounter::class); }
     public function laboratoryOrders(): HasMany { return $this->hasMany(LaboratoryOrder::class); }
+    public function prescriptions(): HasMany { return $this->hasMany(Prescription::class); }
+    public function medicationDispensings(): HasMany { return $this->hasMany(MedicationDispensing::class); }
 
     public function getFullNameAttribute(): string { return trim(implode(' ', array_filter([$this->first_name, $this->middle_name, $this->last_name]))); }
     public function isActive(): bool { return $this->status === self::STATUS_ACTIVE; }
