@@ -40,7 +40,7 @@ class BillingPermissionTest extends TestCase
 
         $this->assertContains('billing.view', Role::where('slug', 'doctor')->firstOrFail()->permissions()->pluck('slug')->all());
         $this->assertContains('billing.view', Role::where('slug', 'receptionist')->firstOrFail()->permissions()->pluck('slug')->all());
-        $this->assertNotContains('billing.payments.record', Role::where('slug', 'doctor')->firstOrFail()->permissions()->all());
-        $this->assertNotContains('billing.payments.record', Role::where('slug', 'receptionist')->firstOrFail()->permissions()->all());
+        $this->assertNotContains('billing.payments.record', Role::where('slug', 'doctor')->firstOrFail()->permissions()->pluck('slug')->all());
+        $this->assertNotContains('billing.payments.record', Role::where('slug', 'receptionist')->firstOrFail()->permissions()->pluck('slug')->all());
     }
 }
