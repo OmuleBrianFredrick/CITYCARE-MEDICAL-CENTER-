@@ -55,7 +55,7 @@ class ClinicalEncounterController extends Controller
         return redirect()->route('encounters.show', $encounter)->with('status', "Encounter {$encounter->encounter_number} opened successfully.");
     }
 
-    public function show(ClinicalEncounter $encounter): View
+    public function show(ClinicalEncounter $encounter, Request $request): View
     {
         $encounter->load([
             'patient', 'appointment', 'department', 'servicePoint', 'clinician',
@@ -73,7 +73,7 @@ class ClinicalEncounterController extends Controller
 
         $laboratoryTests = collect();
 
-        if ($requestUser = request()->user(); $requestUser?->hasPermissionTo('laboratory.orders.create')) {
+        if ($request->user()?->hasPermissionTo('laboratory.orders.create')) {
             $laboratoryTests = LaboratoryTest::query()
                 ->where('facility_id', $encounter->facility_id)
                 ->where('is_active', true)
