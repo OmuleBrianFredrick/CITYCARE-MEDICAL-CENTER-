@@ -9,6 +9,7 @@ use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalReferralAttachmentController;
 use App\Http\Controllers\ClinicalReferralController;
 use App\Http\Controllers\ClinicalTreatmentPlanController;
+use App\Http\Controllers\InventoryProcurementController;
 use App\Http\Controllers\LaboratoryOrderController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
@@ -128,6 +129,16 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->middleware('permission:billing.work.manage')
             ->whereNumber('invoice')
             ->name('invoices.refresh');
+    });
+
+    Route::prefix('inventory/procurement')->name('inventory.procurement.')->middleware('permission:inventory.view')->group(function () {
+        Route::get('/', [InventoryProcurementController::class, 'index'])->name('index');
+        Route::get('/create', [InventoryProcurementController::class, 'create'])->middleware('permission:inventory.manage')->name('create');
+        Route::get('/{purchaseOrder}', [InventoryProcurementController::class, 'show'])->whereNumber('purchaseOrder')->name('show');
+        Route::post('/', [InventoryProcurementController::class, 'store'])->middleware('permission:inventory.manage')->name('store');
+        Route::post('/{purchaseOrder}/items', [InventoryProcurementController::class, 'addItem'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('items.store');
+        Route::post('/{purchaseOrder}/receive', [InventoryProcurementController::class, 'receive'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('receive');
+        Route::post('/{purchaseOrder}/cancel', [InventoryProcurementController::class, 'cancel'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('cancel');
     });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
