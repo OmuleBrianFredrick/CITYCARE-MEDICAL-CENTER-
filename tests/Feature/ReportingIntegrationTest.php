@@ -74,7 +74,7 @@ class ReportingIntegrationTest extends TestCase
 
         $result = $run->fresh()->result_metadata;
         $this->assertSame(2, $result['total_encounters']);
-        $this->assertSame(['open' => 1, 'closed' => 1], $result['by_status']);
+        $this->assertSame(['closed' => 1, 'open' => 1], $result['by_status']);
     }
 
     public function test_laboratory_pharmacy_billing_and_inventory_reports_reflect_operational_records(): void
