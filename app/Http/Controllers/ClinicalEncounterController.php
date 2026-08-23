@@ -10,14 +10,17 @@ use App\Models\ClinicalEncounter;
 use App\Models\LaboratoryTest;
 use App\Models\Medication;
 use App\Services\ClinicalEncounterService;
+use App\Services\FacilityAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ClinicalEncounterController extends Controller
 {
-    public function __construct(private readonly ClinicalEncounterService $encounters)
-    {
+    public function __construct(
+        private readonly ClinicalEncounterService $encounters,
+        private readonly FacilityAccessService $facilityAccess,
+    ) {
     }
 
     public function index(Request $request): View
@@ -59,6 +62,8 @@ class ClinicalEncounterController extends Controller
 
     public function show(ClinicalEncounter $encounter, Request $request): View
     {
+        $this->facilityAccess->assertEncounterAccessible($request->user(), $encounter);
+
         $encounter->load([
             'patient', 'appointment', 'department', 'servicePoint', 'clinician',
             'notes' => fn ($query) => $query->with('author')->latest(),
