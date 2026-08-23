@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\BillableService;
 use App\Models\ClinicalEncounter;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePrice;
+use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\BillingService;
 use Database\Seeders\CityCareAccessSeeder;
@@ -16,14 +18,16 @@ use Tests\TestCase;
 
 class BillingClinicalWorkspaceTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_doctor_can_view_encounter_billing_summary_without_payment_management(): void
     {
         $this->seed(CityCareAccessSeeder::class);
 
         [$doctor, $encounter, $service, $price] = $this->workspaceContext('doctor');
         $admin = $this->userWithRole('administrator');
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $admin->id],
+            ['department_id' => $doctor->staffProfile->department_id]
+        );
         $charge = app(BillingService::class)->addCharge($admin, $encounter->patient, $service, $price, [
             'encounter' => $encounter,
             'quantity' => 1,
@@ -51,8 +55,12 @@ class BillingClinicalWorkspaceTest extends TestCase
     {
         $this->seed(CityCareAccessSeeder::class);
 
-        [, $encounter] = $this->workspaceContext('doctor');
+        [$doctor, $encounter] = $this->workspaceContext('doctor');
         $nurse = $this->userWithRole('nurse');
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $nurse->id],
+            ['department_id' => $doctor->staffProfile->department_id]
+        );
 
         $this->actingAs($nurse)
             ->get(route('encounters.show', $encounter))
@@ -67,6 +75,10 @@ class BillingClinicalWorkspaceTest extends TestCase
 
         [$doctor, $encounter, $service, $price] = $this->workspaceContext('doctor');
         $admin = $this->userWithRole('administrator');
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $admin->id],
+            ['department_id' => $doctor->staffProfile->department_id]
+        );
 
         $this->actingAs($admin)
             ->get(route('encounters.show', $encounter))
@@ -96,11 +108,17 @@ class BillingClinicalWorkspaceTest extends TestCase
     {
         $doctor = $this->userWithRole($roleSlug);
         $facility = Facility::factory()->create();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $doctor->id],
+            ['department_id' => $department->id]
+        );
         $patient = Patient::factory()->create(['facility_id' => $facility->id]);
         $encounter = ClinicalEncounter::factory()->create([
             'facility_id' => $facility->id,
             'patient_id' => $patient->id,
             'clinician_id' => $doctor->id,
+            'department_id' => $department->id,
             'status' => ClinicalEncounter::STATUS_OPEN,
         ]);
         $service = BillableService::factory()->create([
