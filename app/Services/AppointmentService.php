@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Appointment;
 use App\Models\Patient;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AppointmentService
@@ -22,20 +23,58 @@ class AppointmentService
             throw ValidationException::withMessages(['scheduled_end' => 'Appointment end must be after the start time.']);
         }
 
-        $patient = Patient::query()->findOrFail($data['patient_id']);
-        if (! $patient->isActive()) {
-            throw ValidationException::withMessages(['patient_id' => 'Only active patients can be scheduled.']);
-        }
+        return DB::transaction(function () use ($data, $start, $end) {
+            $patient = Patient::query()->lockForUpdate()->findOrFail($data['patient_id']);
+            if (! $patient->isActive()) {
+                throw ValidationException::withMessages(['patient_id' => 'Only active patients can be scheduled.']);
+            }
 
-        $this->ensureNoCollision($data, $start, $end);
+            $this->ensureNoCollision($data, $start, $end, true);
 
-        $data['appointment_number'] ??= $this->nextAppointmentNumber();
-        $data['status'] ??= Appointment::STATUS_SCHEDULED;
+            $data['appointment_number'] ??= $this->nextAppointmentNumber();
+            $data['status'] ??= Appointment::STATUS_SCHEDULED;
 
-        return Appointment::create($data);
+            return Appointment::create($data);
+        }, 3);
     }
 
-    private function ensureNoCollision(array $data, CarbonInterface $start, CarbonInterface $end): void
+    public function checkIn(Appointment $appointment): Appointment
+    {
+        return DB::transaction(function () use ($appointment) {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
+            if (! $appointment->isScheduled()) {
+                throw ValidationException::withMessages(['appointment' => 'Only scheduled appointments can be checked in.']);
+            }
+            $appointment->update(['status' => Appointment::STATUS_CHECKED_IN, 'checked_in_at' => now()]);
+            return $appointment->refresh();
+        }, 3);
+    }
+
+    public function complete(Appointment $appointment): Appointment
+    {
+        return DB::transaction(function () use ($appointment) {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
+            if (! $appointment->isCheckedIn()) {
+                throw ValidationException::withMessages(['appointment' => 'Only checked-in appointments can be completed.']);
+            }
+            $appointment->update(['status' => Appointment::STATUS_COMPLETED, 'completed_at' => now()]);
+            return $appointment->refresh();
+        }, 3);
+    }
+
+    public function cancel(Appointment $appointment): Appointment
+    {
+        return DB::transaction(function () use ($appointment) {
+            $appointment = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
+            if (! $appointment->isScheduled()) {
+                throw ValidationException::withMessages(['appointment' => 'Only scheduled appointments can be cancelled.']);
+            }
+            $appointment->update(['status' => Appointment::STATUS_CANCELLED, 'cancelled_at' => now()]);
+            return $appointment->refresh();
+        }, 3);
+    }
+
+    private function ensureNoCollision(array $data, CarbonInterface $start, CarbonInterface $end, bool $lock = false): void
     {
         $query = Appointment::query()
             ->whereIn('status', [Appointment::STATUS_SCHEDULED, Appointment::STATUS_CHECKED_IN])
@@ -48,6 +87,10 @@ class AppointmentService
                 $q->orWhere('provider_id', $data['provider_id']);
             }
         });
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
 
         if ($query->exists()) {
             throw ValidationException::withMessages([
