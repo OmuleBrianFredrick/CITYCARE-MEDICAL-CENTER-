@@ -138,9 +138,9 @@ class ReportingIntegrationTest extends TestCase
         $inventoryDefinition = ReportDefinition::where('code', 'inventory_summary')->latest('id')->firstOrFail();
         $inventory = app(\App\Services\ReportingService::class)->run($staff, $inventoryDefinition, ['facility_id' => $facility->id], $facility->id);
         $this->assertSame(1, $inventory->result_metadata['stock_line_count']);
-        $this->assertSame(12.0, $inventory->result_metadata['quantity_on_hand']);
-        $this->assertSame(10.0, $inventory->result_metadata['quantity_available']);
-        $this->assertSame(2.0, $inventory->result_metadata['quantity_reserved']);
+        $this->assertSame(12.0, (float) $inventory->result_metadata['quantity_on_hand']);
+        $this->assertSame(10.0, (float) $inventory->result_metadata['quantity_available']);
+        $this->assertSame(2.0, (float) $inventory->result_metadata['quantity_reserved']);
     }
 
     public function test_reporting_does_not_mutate_operational_data(): void
