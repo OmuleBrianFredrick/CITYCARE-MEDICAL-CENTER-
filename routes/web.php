@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ClinicalCareController;
 use App\Http\Controllers\ClinicalDiagnosisController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientPortalController;
 use App\Http\Controllers\PharmacyController;
+use App\Http\Controllers\ReportingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -145,6 +147,16 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/{purchaseOrder}/receive', [InventoryProcurementController::class, 'receive'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('receive');
         Route::post('/{purchaseOrder}/cancel', [InventoryProcurementController::class, 'cancel'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('cancel');
     });
+
+    Route::prefix('reports')->name('reports.')->middleware('permission:reports.view')->group(function () {
+        Route::get('/', [ReportingController::class, 'index'])->name('index');
+        Route::post('/{reportDefinition}/run', [ReportingController::class, 'run'])->whereNumber('reportDefinition')->name('run');
+        Route::get('/runs/{reportRun}', [ReportingController::class, 'show'])->whereNumber('reportRun')->name('show');
+    });
+
+    Route::get('/audit', [AuditLogController::class, 'index'])
+        ->middleware('permission:audit.view')
+        ->name('audit.index');
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
         Route::get('/', [OrganizationController::class, 'index'])->name('index');
