@@ -97,6 +97,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->middleware('permission:pharmacy.view')
             ->whereNumber('encounter')
             ->name('pharmacy.show');
+
+        Route::post('/prescriptions/{prescription}/dispense', [PharmacyController::class, 'dispense'])
+            ->middleware('permission:pharmacy.dispensing.manage')
+            ->whereNumber('prescription')
+            ->name('prescriptions.dispense');
     });
 
     Route::prefix('billing')->name('billing.')->group(function () {
