@@ -30,6 +30,10 @@ class LaboratoryClinicalRegressionTest extends TestCase
         $clinician = $this->staffWithRole('doctor');
         $facility = Facility::factory()->create();
         $department = Department::factory()->create(['facility_id' => $facility->id]);
+        \App\Models\StaffProfile::query()->updateOrCreate(
+            ['user_id' => $clinician->id],
+            ['department_id' => $department->id]
+        );
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
         $patient = Patient::factory()->create([
             'facility_id' => $facility->id,
