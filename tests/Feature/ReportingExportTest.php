@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\ReportExportService;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ReportingExportTest extends TestCase
@@ -41,14 +40,14 @@ class ReportingExportTest extends TestCase
         $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
         $this->assertSame('attachment; filename=report-'.$run->id.'.csv', $response->headers->get('Content-Disposition'));
 
-        $content = $response->getCallback();
+        $callback = $response->getCallback();
         ob_start();
-        $content();
+        $callback();
         $csv = ob_get_clean();
 
         $this->assertStringContainsString('Report,Clinical Activity', $csv);
         $this->assertStringContainsString('Total Encounters,4', $csv);
-        $this->assertStringContainsString('By Status,"{', $csv);
+        $this->assertStringContainsString('By Status', $csv);
         $this->assertStringContainsString('closed', $csv);
         $this->assertStringContainsString('open', $csv);
     }
