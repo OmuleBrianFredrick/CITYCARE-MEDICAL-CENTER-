@@ -27,56 +27,56 @@ class ReportingService
             $filters['facility_id'] = (int) $facilityId;
         }
 
-        return DB::transaction(function () use ($staff, $definition, $filters, $facilityId): ReportRun {
-            $run = ReportRun::create([
-                'report_definition_id' => $definition->id,
-                'requested_by_id' => $staff->id,
-                'facility_id' => $facilityId,
-                'status' => ReportRun::STATUS_RUNNING,
-                'filters' => $filters,
-                'started_at' => now(),
+        $run = ReportRun::create([
+            'report_definition_id' => $definition->id,
+            'requested_by_id' => $staff->id,
+            'facility_id' => $facilityId,
+            'status' => ReportRun::STATUS_RUNNING,
+            'filters' => $filters,
+            'period_start' => $filters['date_from'] ?? null,
+            'period_end' => $filters['date_to'] ?? null,
+            'started_at' => now(),
+        ]);
+
+        try {
+            $result = match ($definition->code) {
+                'clinical_activity' => $this->clinicalActivity($filters),
+                'laboratory_activity' => $this->laboratoryActivity($filters),
+                'pharmacy_activity' => $this->pharmacyActivity($filters),
+                'billing_summary' => $this->billingSummary($filters),
+                'inventory_summary' => $this->inventorySummary($filters),
+                default => throw ValidationException::withMessages(['report' => 'Unsupported report definition.']),
+            };
+
+            $run->update([
+                'status' => ReportRun::STATUS_COMPLETED,
+                'result_metadata' => $result,
+                'completed_at' => now(),
             ]);
 
-            try {
-                $result = match ($definition->code) {
-                    'clinical_activity' => $this->clinicalActivity($filters),
-                    'laboratory_activity' => $this->laboratoryActivity($filters),
-                    'pharmacy_activity' => $this->pharmacyActivity($filters),
-                    'billing_summary' => $this->billingSummary($filters),
-                    'inventory_summary' => $this->inventorySummary($filters),
-                    default => throw ValidationException::withMessages(['report' => 'Unsupported report definition.']),
-                };
+            AuditEvent::create([
+                'actor_id' => $staff->id,
+                'facility_id' => $facilityId,
+                'event_type' => 'report.run.completed',
+                'action' => 'completed',
+                'auditable_type' => ReportRun::class,
+                'auditable_id' => $run->id,
+                'before_values' => null,
+                'after_values' => ['report_definition_id' => $definition->id, 'filters' => $filters],
+                'context' => ['report_code' => $definition->code],
+                'occurred_at' => now(),
+            ]);
 
-                $run->update([
-                    'status' => ReportRun::STATUS_COMPLETED,
-                    'result_metadata' => $result,
-                    'completed_at' => now(),
-                ]);
+            return $run->fresh();
+        } catch (\Throwable $exception) {
+            $run->update([
+                'status' => ReportRun::STATUS_FAILED,
+                'error_message' => $exception->getMessage(),
+                'completed_at' => now(),
+            ]);
 
-                AuditEvent::create([
-                    'actor_id' => $staff->id,
-                    'facility_id' => $facilityId,
-                    'event_type' => 'report.run.completed',
-                    'action' => 'completed',
-                    'auditable_type' => ReportRun::class,
-                    'auditable_id' => $run->id,
-                    'before_values' => null,
-                    'after_values' => ['report_definition_id' => $definition->id, 'filters' => $filters],
-                    'context' => ['report_code' => $definition->code],
-                    'occurred_at' => now(),
-                ]);
-
-                return $run->fresh();
-            } catch (\Throwable $exception) {
-                $run->update([
-                    'status' => ReportRun::STATUS_FAILED,
-                    'error_message' => $exception->getMessage(),
-                    'completed_at' => now(),
-                ]);
-
-                throw $exception;
-            }
-        });
+            throw $exception;
+        }
     }
 
     private function clinicalActivity(array $filters): array
@@ -85,6 +85,7 @@ class ReportingService
         $this->applyDateAndFacility($query, $filters, 'created_at', 'facility_id');
 
         return [
+            'report' => 'clinical_activity',
             'total_encounters' => (int) $query->count(),
             'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
@@ -96,6 +97,7 @@ class ReportingService
         $this->applyDateAndFacility($query, $filters, 'created_at', 'facility_id');
 
         return [
+            'report' => 'laboratory_activity',
             'total_orders' => (int) $query->count(),
             'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
@@ -107,6 +109,7 @@ class ReportingService
         $this->applyDateAndFacility($query, $filters, 'created_at', 'facility_id');
 
         return [
+            'report' => 'pharmacy_activity',
             'total_prescriptions' => (int) $query->count(),
             'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
@@ -120,6 +123,7 @@ class ReportingService
         $totals = $query->clone()->selectRaw('COALESCE(SUM(total),0) total, COALESCE(SUM(paid_amount),0) paid, COALESCE(SUM(outstanding_balance),0) outstanding')->first();
 
         return [
+            'report' => 'billing_summary',
             'invoice_count' => (int) $query->count(),
             'total' => (float) $totals->total,
             'paid' => (float) $totals->paid,
@@ -137,6 +141,7 @@ class ReportingService
         }
 
         return [
+            'report' => 'inventory_summary',
             'stock_line_count' => (int) $query->count(),
             'quantity_on_hand' => (float) $query->sum('balances.quantity_on_hand'),
             'quantity_available' => (float) $query->sum('balances.quantity_available'),
