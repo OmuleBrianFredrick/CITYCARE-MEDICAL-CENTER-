@@ -131,9 +131,9 @@ class ReportingIntegrationTest extends TestCase
         $billingDefinition = ReportDefinition::where('code', 'billing_summary')->latest('id')->firstOrFail();
         $billing = app(\App\Services\ReportingService::class)->run($staff, $billingDefinition, ['facility_id' => $facility->id], $facility->id);
         $this->assertSame(1, $billing->result_metadata['invoice_count']);
-        $this->assertSame(100.0, $billing->result_metadata['total']);
-        $this->assertSame(40.0, $billing->result_metadata['paid']);
-        $this->assertSame(60.0, $billing->result_metadata['outstanding']);
+        $this->assertSame(100.0, (float) $billing->result_metadata['total']);
+        $this->assertSame(40.0, (float) $billing->result_metadata['paid']);
+        $this->assertSame(60.0, (float) $billing->result_metadata['outstanding']);
 
         $inventoryDefinition = ReportDefinition::where('code', 'inventory_summary')->latest('id')->firstOrFail();
         $inventory = app(\App\Services\ReportingService::class)->run($staff, $inventoryDefinition, ['facility_id' => $facility->id], $facility->id);
