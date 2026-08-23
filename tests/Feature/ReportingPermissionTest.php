@@ -30,10 +30,15 @@ class ReportingPermissionTest extends TestCase
     {
         $this->seed(CityCareAccessSeeder::class);
 
-        $this->assertTrue(Role::where('slug', 'super-admin')->firstOrFail()->permissions()->where('slug', 'reports.view')->exists());
-        $this->assertTrue(Role::where('slug', 'super-admin')->firstOrFail()->permissions()->where('slug', 'audit.view')->exists());
+        $superAdmin = Role::where('slug', 'super-admin')->firstOrFail();
+        $this->assertTrue($superAdmin->permissions()->where('slug', 'reports.view')->exists());
+        $this->assertTrue($superAdmin->permissions()->where('slug', 'audit.view')->exists());
 
-        foreach (['administrator', 'doctor', 'laboratory', 'pharmacy', 'cashier', 'records', 'inventory'] as $roleSlug) {
+        $administrator = Role::where('slug', 'administrator')->firstOrFail();
+        $this->assertTrue($administrator->permissions()->where('slug', 'reports.view')->exists());
+        $this->assertTrue($administrator->permissions()->where('slug', 'audit.view')->exists());
+
+        foreach (['doctor', 'laboratory', 'pharmacy', 'cashier', 'records', 'inventory'] as $roleSlug) {
             $role = Role::where('slug', $roleSlug)->firstOrFail();
             $this->assertTrue($role->permissions()->where('slug', 'reports.view')->exists(), "{$roleSlug} should have reports.view");
             $this->assertFalse($role->permissions()->where('slug', 'audit.view')->exists(), "{$roleSlug} should not have audit.view");
@@ -45,7 +50,6 @@ class ReportingPermissionTest extends TestCase
             $this->assertFalse($role->permissions()->where('slug', 'audit.view')->exists(), "{$roleSlug} should not have audit.view");
         }
 
-        $administrator = Role::where('slug', 'administrator')->firstOrFail();
         $this->assertFalse($administrator->permissions()->whereIn('slug', ['reports.run', 'reports.export', 'audit.manage'])->exists());
     }
 }
