@@ -27,7 +27,7 @@ class FacilityAccessService
             ]);
         }
 
-        if ($staff->hasRole('administrator')) {
+        if ($staff->hasRole('super-admin')) {
             return;
         }
 
