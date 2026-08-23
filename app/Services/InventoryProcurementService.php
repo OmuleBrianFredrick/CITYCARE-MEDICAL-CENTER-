@@ -126,6 +126,11 @@ class InventoryProcurementService
         }
 
         return DB::transaction(function () use ($staff, $order, $store, $items, $data) {
+            $order = PurchaseOrder::query()->lockForUpdate()->findOrFail($order->id);
+            if (! in_array($order->status, ['ordered', 'partially_received'], true)) {
+                throw ValidationException::withMessages(['purchase_order' => 'Only open purchase orders can receive stock.']);
+            }
+
             $receipt = GoodsReceipt::create([
                 'facility_id' => $order->facility_id,
                 'purchase_order_id' => $order->id,
@@ -139,7 +144,11 @@ class InventoryProcurementService
 
             $seen = [];
             foreach ($items as $itemData) {
-                $poItem = PurchaseOrderItem::query()->where('purchase_order_id', $order->id)->find($itemData['purchase_order_item_id'] ?? null);
+                $poItem = PurchaseOrderItem::query()
+                    ->where('purchase_order_id', $order->id)
+                    ->whereKey($itemData['purchase_order_item_id'] ?? null)
+                    ->lockForUpdate()
+                    ->first();
                 if (! $poItem) {
                     throw ValidationException::withMessages(['purchase_order_item_id' => 'The purchase order item is invalid.']);
                 }
@@ -171,11 +180,29 @@ class InventoryProcurementService
                     'line_total' => $lineTotal,
                 ]);
 
-                $balance = InventoryStockBalance::query()->firstOrCreate(
-                    ['store_id' => $store->id, 'inventory_item_id' => $inventoryItem->id],
-                    ['quantity_on_hand' => 0, 'quantity_reserved' => 0, 'quantity_available' => 0, 'status' => 'active']
-                );
-                $balance->lockForUpdate()->first();
+                $balance = InventoryStockBalance::query()
+                    ->where('store_id', $store->id)
+                    ->where('inventory_item_id', $inventoryItem->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $balance) {
+                    InventoryStockBalance::create([
+                        'store_id' => $store->id,
+                        'inventory_item_id' => $inventoryItem->id,
+                        'quantity_on_hand' => 0,
+                        'quantity_reserved' => 0,
+                        'quantity_available' => 0,
+                        'status' => 'active',
+                    ]);
+
+                    $balance = InventoryStockBalance::query()
+                        ->where('store_id', $store->id)
+                        ->where('inventory_item_id', $inventoryItem->id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+                }
+
                 $newOnHand = round((float) $balance->quantity_on_hand + $quantity, 3);
                 $available = round($newOnHand - (float) $balance->quantity_reserved, 3);
                 $balance->update(['quantity_on_hand' => $newOnHand, 'quantity_available' => max(0, $available), 'status' => 'active']);
@@ -197,7 +224,7 @@ class InventoryProcurementService
 
             $this->refreshPurchaseOrderStatus($order->fresh('items'));
             return $receipt->load('items');
-        });
+        }, 3);
     }
 
     public function cancelPurchaseOrder(User $staff, PurchaseOrder $order, string $reason): PurchaseOrder
@@ -260,7 +287,6 @@ class InventoryProcurementService
 
     private function assertFacilityAccess(User $staff, int $facilityId): void
     {
-        // Facility-scoped staff validation is delegated to the service caller's established access-control boundary.
         if (! $staff->isStaff()) {
             throw ValidationException::withMessages(['staff_id' => 'Inventory operations require staff access.']);
         }
