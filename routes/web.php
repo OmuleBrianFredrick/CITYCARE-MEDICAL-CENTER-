@@ -19,9 +19,7 @@ use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\ReportingController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+Route::redirect('/', '/login')->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
