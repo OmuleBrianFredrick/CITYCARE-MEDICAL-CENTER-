@@ -8,7 +8,7 @@ class RunReportRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('reports.view') ?? false;
+        return $this->user()?->hasPermissionTo('reports.view') ?? false;
     }
 
     public function rules(): array
