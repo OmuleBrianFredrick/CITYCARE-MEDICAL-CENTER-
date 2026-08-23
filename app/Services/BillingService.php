@@ -72,7 +72,7 @@ class BillingService
                 'currency' => $price->currency,
                 'idempotency_key' => $key,
             ]);
-        });
+        }, 3);
     }
 
     public function createInvoice(User $staff, Patient $patient, array $charges, array $data = []): Invoice
@@ -158,7 +158,7 @@ class BillingService
             }
 
             return $invoice->load('lineItems');
-        });
+        }, 3);
     }
 
     public function recordPayment(User $staff, Invoice $invoice, float $amount, string $method, array $data = []): Payment
@@ -200,7 +200,7 @@ class BillingService
             $invoice->update(['paid_amount' => $paid, 'balance_due' => max(0, $due), 'status' => $status, 'paid_at' => $status === Invoice::STATUS_PAID ? now() : null]);
 
             return $payment->refresh();
-        });
+        }, 3);
     }
 
     public function cancelInvoice(User $staff, Invoice $invoice, string $reason): Invoice
@@ -223,7 +223,7 @@ class BillingService
             });
             $invoice->update(['status' => Invoice::STATUS_CANCELLED, 'cancelled_by_id' => $staff->id, 'cancelled_at' => now(), 'cancel_reason' => $reason]);
             return $invoice->refresh();
-        });
+        }, 3);
     }
 
     public function refreshInvoiceTotals(Invoice $invoice): Invoice
@@ -243,7 +243,7 @@ class BillingService
             $due = round($total - (float) $invoice->paid_amount, 2);
             $invoice->update(['subtotal' => $subtotal, 'discount_total' => $discount, 'adjustment_total' => $adjustment, 'total' => $total, 'balance_due' => max(0, $due)]);
             return $invoice->refresh();
-        });
+        }, 3);
     }
 
     private function assertActiveStaff(User $staff): void
