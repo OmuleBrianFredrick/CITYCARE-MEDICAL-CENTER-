@@ -29,11 +29,11 @@ class ReportingServiceTest extends TestCase
 
         $service = app(ReportingService::class);
 
-        $run = $service->run($definition, $staff, [
+        $run = $service->run($staff, $definition, [
             'facility_id' => $facility->id,
             'date_from' => Carbon::today()->subDays(7)->toDateString(),
             'date_to' => Carbon::today()->toDateString(),
-        ]);
+        ], $facility->id);
 
         $this->assertSame(ReportRun::STATUS_COMPLETED, $run->fresh()->status);
         $this->assertSame($staff->id, $run->requested_by_id);
@@ -54,7 +54,7 @@ class ReportingServiceTest extends TestCase
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
 
-        app(ReportingService::class)->run($definition, $staff, [
+        app(ReportingService::class)->run($staff, $definition, [
             'unknown_filter' => 'x',
         ]);
     }
@@ -70,7 +70,7 @@ class ReportingServiceTest extends TestCase
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
 
-        app(ReportingService::class)->run($definition, $staff, []);
+        app(ReportingService::class)->run($staff, $definition, []);
     }
 
     public function test_service_rejects_inactive_staff(): void
@@ -84,7 +84,7 @@ class ReportingServiceTest extends TestCase
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
 
-        app(ReportingService::class)->run($definition, $staff, []);
+        app(ReportingService::class)->run($staff, $definition, []);
     }
 
     public function test_service_creates_failed_run_when_execution_throws(): void
@@ -97,7 +97,7 @@ class ReportingServiceTest extends TestCase
         ]);
 
         try {
-            app(ReportingService::class)->run($definition, $staff, []);
+            app(ReportingService::class)->run($staff, $definition, []);
             $this->fail('Expected report execution to fail.');
         } catch (\Throwable $exception) {
             $this->assertDatabaseHas('report_runs', [
