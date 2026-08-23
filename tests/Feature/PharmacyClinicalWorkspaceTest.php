@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicalEncounter;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Medication;
 use App\Models\Patient;
 use App\Models\Prescription;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,6 +58,10 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         ]);
 
         $nurse = $this->userWithRole('nurse');
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $nurse->id],
+            ['department_id' => $doctor->staffProfile->department_id]
+        );
 
         $this->actingAs($nurse)
             ->get(route('encounters.show', $encounter))
@@ -100,11 +106,17 @@ class PharmacyClinicalWorkspaceTest extends TestCase
     {
         $doctor = $this->userWithRole($roleSlug);
         $facility = Facility::factory()->create();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $doctor->id],
+            ['department_id' => $department->id]
+        );
         $patient = Patient::factory()->create(['facility_id' => $facility->id]);
         $encounter = ClinicalEncounter::factory()->create([
             'facility_id' => $facility->id,
             'patient_id' => $patient->id,
             'clinician_id' => $doctor->id,
+            'department_id' => $department->id,
             'status' => ClinicalEncounter::STATUS_OPEN,
         ]);
         $medication = Medication::factory()->create([
