@@ -18,7 +18,8 @@ class Appointment extends Model
 
     protected $fillable = [
         'facility_id', 'department_id', 'service_point_id', 'patient_id', 'provider_id',
-        'appointment_number', 'scheduled_start', 'scheduled_end', 'reason', 'notes',
+        'appointment_number', 'scheduled_start', 'scheduled_end', 'status', 'reason', 'notes',
+        'checked_in_at', 'cancelled_at', 'completed_at', 'created_by',
     ];
 
     protected function casts(): array
