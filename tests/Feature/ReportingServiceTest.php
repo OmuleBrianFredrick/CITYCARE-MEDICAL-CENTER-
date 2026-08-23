@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\ReportingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class ReportingServiceTest extends TestCase
@@ -27,19 +28,22 @@ class ReportingServiceTest extends TestCase
             'is_active' => true,
         ]);
 
-        $service = app(ReportingService::class);
-
-        $run = $service->run($staff, $definition, [
+        $run = app(ReportingService::class)->run($staff, $definition, [
             'facility_id' => $facility->id,
             'date_from' => Carbon::today()->subDays(7)->toDateString(),
             'date_to' => Carbon::today()->toDateString(),
         ], $facility->id);
 
-        $this->assertSame(ReportRun::STATUS_COMPLETED, $run->fresh()->status);
-        $this->assertSame($staff->id, $run->requested_by_id);
-        $this->assertSame($facility->id, $run->facility_id);
-        $this->assertIsArray($run->result);
-        $this->assertSame('clinical_activity', $run->result['report']);
+        $persistedRun = $run->fresh();
+
+        $this->assertSame(ReportRun::STATUS_COMPLETED, $persistedRun->status);
+        $this->assertSame($staff->id, $persistedRun->requested_by_id);
+        $this->assertSame($facility->id, $persistedRun->facility_id);
+        $this->assertIsArray($persistedRun->result_metadata);
+        $this->assertSame(0, $persistedRun->result_metadata['total_encounters']);
+        $this->assertArrayHasKey('by_status', $persistedRun->result_metadata);
+        $this->assertNotNull($persistedRun->period_start);
+        $this->assertNotNull($persistedRun->period_end);
     }
 
     public function test_service_rejects_unsupported_filter_before_execution(): void
@@ -52,7 +56,7 @@ class ReportingServiceTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         app(ReportingService::class)->run($staff, $definition, [
             'unknown_filter' => 'x',
@@ -68,7 +72,7 @@ class ReportingServiceTest extends TestCase
             'is_active' => false,
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         app(ReportingService::class)->run($staff, $definition, []);
     }
@@ -82,7 +86,7 @@ class ReportingServiceTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         app(ReportingService::class)->run($staff, $definition, []);
     }
@@ -100,11 +104,15 @@ class ReportingServiceTest extends TestCase
             app(ReportingService::class)->run($staff, $definition, []);
             $this->fail('Expected report execution to fail.');
         } catch (\Throwable $exception) {
-            $this->assertDatabaseHas('report_runs', [
-                'report_definition_id' => $definition->id,
-                'requested_by_id' => $staff->id,
-                'status' => ReportRun::STATUS_FAILED,
-            ]);
+            $failedRun = ReportRun::query()
+                ->where('report_definition_id', $definition->id)
+                ->where('requested_by_id', $staff->id)
+                ->sole();
+
+            $this->assertSame(ReportRun::STATUS_FAILED, $failedRun->status);
+            $this->assertNotNull($failedRun->error_message);
+            $this->assertNotNull($failedRun->completed_at);
+            $this->assertTrue($failedRun->isTerminal());
         }
     }
 }
