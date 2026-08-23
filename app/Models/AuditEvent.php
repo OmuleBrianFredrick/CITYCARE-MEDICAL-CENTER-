@@ -25,6 +25,11 @@ class AuditEvent extends Model
         'occurred_at',
     ];
 
+    protected $hidden = [
+        'ip_address',
+        'user_agent',
+    ];
+
     protected $casts = [
         'before_values' => 'array',
         'after_values' => 'array',
