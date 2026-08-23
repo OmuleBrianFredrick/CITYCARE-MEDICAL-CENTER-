@@ -73,8 +73,8 @@ class ReportingIntegrationTest extends TestCase
         ], $facility->id);
 
         $result = $run->fresh()->result_metadata;
-        $this->assertSame(1, $result['total_encounters']);
-        $this->assertSame(['open' => 1], $result['by_status']);
+        $this->assertSame(2, $result['total_encounters']);
+        $this->assertSame(['open' => 1, 'closed' => 1], $result['by_status']);
     }
 
     public function test_laboratory_pharmacy_billing_and_inventory_reports_reflect_operational_records(): void
@@ -83,12 +83,18 @@ class ReportingIntegrationTest extends TestCase
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $facility = Facility::factory()->create();
 
-        LaboratoryOrder::factory()->create(['facility_id' => $facility->id, 'status' => LaboratoryOrder::STATUS_PENDING]);
-        LaboratoryOrder::factory()->create(['facility_id' => $facility->id, 'status' => LaboratoryOrder::STATUS_COMPLETED]);
-        Prescription::factory()->create(['facility_id' => $facility->id, 'status' => 'active']);
+        $labPatient = Patient::factory()->create(['facility_id' => $facility->id]);
+        $labPatient2 = Patient::factory()->create(['facility_id' => $facility->id]);
+        $labOrder1 = LaboratoryOrder::factory()->create(['facility_id' => $facility->id, 'patient_id' => $labPatient->id]);
+        $labOrder2 = LaboratoryOrder::factory()->create(['facility_id' => $facility->id, 'patient_id' => $labPatient2->id]);
+        $labOrder1->update(['status' => LaboratoryOrder::STATUS_ORDERED]);
+        $labOrder2->update(['status' => LaboratoryOrder::STATUS_COMPLETED]);
+
+        Prescription::factory()->create(['facility_id' => $facility->id, 'patient_id' => $labPatient->id]);
+
         Invoice::factory()->create([
             'facility_id' => $facility->id,
-            'patient_id' => Patient::factory()->create(['facility_id' => $facility->id])->id,
+            'patient_id' => $labPatient->id,
             'status' => Invoice::STATUS_ISSUED,
             'subtotal' => 100,
             'total' => 100,
@@ -122,13 +128,15 @@ class ReportingIntegrationTest extends TestCase
             $this->assertSame(ReportRun::STATUS_COMPLETED, $run->fresh()->status);
         }
 
-        $billing = app(\App\Services\ReportingService::class)->run($staff, ReportDefinition::where('code', 'billing_summary')->latest('id')->first(), ['facility_id' => $facility->id], $facility->id);
+        $billingDefinition = ReportDefinition::where('code', 'billing_summary')->latest('id')->firstOrFail();
+        $billing = app(\App\Services\ReportingService::class)->run($staff, $billingDefinition, ['facility_id' => $facility->id], $facility->id);
         $this->assertSame(1, $billing->result_metadata['invoice_count']);
         $this->assertSame(100.0, $billing->result_metadata['total']);
         $this->assertSame(40.0, $billing->result_metadata['paid']);
         $this->assertSame(60.0, $billing->result_metadata['outstanding']);
 
-        $inventory = app(\App\Services\ReportingService::class)->run($staff, ReportDefinition::where('code', 'inventory_summary')->latest('id')->first(), ['facility_id' => $facility->id], $facility->id);
+        $inventoryDefinition = ReportDefinition::where('code', 'inventory_summary')->latest('id')->firstOrFail();
+        $inventory = app(\App\Services\ReportingService::class)->run($staff, $inventoryDefinition, ['facility_id' => $facility->id], $facility->id);
         $this->assertSame(1, $inventory->result_metadata['stock_line_count']);
         $this->assertSame(12.0, $inventory->result_metadata['quantity_on_hand']);
         $this->assertSame(10.0, $inventory->result_metadata['quantity_available']);
