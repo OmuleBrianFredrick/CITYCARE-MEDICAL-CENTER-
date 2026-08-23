@@ -30,7 +30,11 @@ class ReportExportService
             fputcsv($handle, []);
 
             foreach (($run->result_metadata ?? []) as $key => $value) {
-                fputcsv($handle, [$this->label($key), $this->scalarize($value)]);
+                $value = ($key === 'report' && is_string($value))
+                    ? $this->label($value)
+                    : $this->scalarize($value);
+
+                fputcsv($handle, [$this->label($key), $value]);
             }
 
             fclose($handle);
