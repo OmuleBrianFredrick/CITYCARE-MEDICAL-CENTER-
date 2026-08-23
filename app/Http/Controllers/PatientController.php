@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePatientRequest;
 use App\Models\Facility;
 use App\Models\Patient;
+use App\Services\FacilityAccessService;
 use App\Services\PatientService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,8 +13,10 @@ use Illuminate\View\View;
 
 class PatientController extends Controller
 {
-    public function __construct(private readonly PatientService $patients)
-    {
+    public function __construct(
+        private readonly PatientService $patients,
+        private readonly FacilityAccessService $facilityAccess,
+    ) {
     }
 
     public function index(Request $request): View
@@ -40,8 +43,10 @@ class PatientController extends Controller
         return redirect()->route('patients.show', $patient)->with('status', 'Patient registered successfully.');
     }
 
-    public function show(Patient $patient): View
+    public function show(Patient $patient, Request $request): View
     {
+        $this->facilityAccess->assertPatientAccessible($request->user(), $patient);
+
         return view('patients.show', compact('patient'));
     }
 }
