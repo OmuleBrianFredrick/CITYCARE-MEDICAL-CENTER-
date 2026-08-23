@@ -116,7 +116,7 @@ return new class extends Migration
             $table->decimal('unit_cost', 14, 2)->default(0);
             $table->decimal('line_total', 14, 2)->default(0);
             $table->timestamps();
-            $table->unique(['goods_receipt_id', 'purchase_order_item_id']);
+            $table->unique(['goods_receipt_id', 'purchase_order_item_id'], 'receipt_item_unique');
         });
 
         Schema::create('inventory_stock_movements', function (Blueprint $table) {
