@@ -128,7 +128,7 @@ class InventoryProcurementControllerTest extends TestCase
     private function context(string $roleSlug): array
     {
         $facility = Facility::factory()->create();
-        $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true, 'facility_id' => $facility->id]);
+        $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $role = Role::where('slug', $roleSlug)->firstOrFail();
         $user->roles()->attach($role->id);
 
