@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +38,11 @@ class PatientControllerTest extends TestCase
     {
         $user = $this->staffWithRole('receptionist');
         $facility = $this->cityCareFacility();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            ['department_id' => $department->id]
+        );
 
         $response = $this->actingAs($user)->post(route('patients.store'), [
             'facility_id' => $facility->id,
