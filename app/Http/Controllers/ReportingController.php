@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ExportReportRequest;
 use App\Http\Requests\RunReportRequest;
 use App\Models\ReportDefinition;
+use App\Models\ReportRun;
+use App\Services\ReportExportService;
 use App\Services\ReportingService;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class ReportingController extends Controller
@@ -39,10 +43,15 @@ class ReportingController extends Controller
 
     public function show(int $reportRun): View
     {
-        $run = \App\Models\ReportRun::query()
+        $run = ReportRun::query()
             ->with(['definition', 'requester', 'facility'])
             ->findOrFail($reportRun);
 
         return view('reports.show', compact('run'));
+    }
+
+    public function export(ExportReportRequest $request, ReportExportService $exportService): StreamedResponse
+    {
+        return $exportService->csv($request->reportRun());
     }
 }
