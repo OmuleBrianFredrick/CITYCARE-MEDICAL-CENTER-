@@ -64,7 +64,6 @@ class FailureRecoveryReliabilityTest extends TestCase
         ]);
         $patient = Patient::factory()->create([
             'facility_id' => $facility->id,
-            'is_active' => true,
         ]);
         $service = BillableService::factory()->create([
             'facility_id' => $facility->id,
