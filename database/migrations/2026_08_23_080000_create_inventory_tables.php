@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['facility_id', 'code']);
             $table->unique(['facility_id', 'sku']);
-            $table->index(['facility_id', 'is_active']);
+            $table->index(['facility_id', 'is_active'], 'inv_items_facility_active_idx');
         });
 
         Schema::create('inventory_stores', function (Blueprint $table) {
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->unique(['facility_id', 'code']);
-            $table->index(['facility_id', 'is_active']);
+            $table->index(['facility_id', 'is_active'], 'inv_stores_facility_active_idx');
         });
 
         Schema::create('inventory_stock_balances', function (Blueprint $table) {
@@ -47,7 +47,7 @@ return new class extends Migration
             $table->string('status')->default('active');
             $table->timestamps();
             $table->unique(['store_id', 'inventory_item_id']);
-            $table->index(['store_id', 'status']);
+            $table->index(['store_id', 'status'], 'inv_bal_store_status_idx');
         });
 
         Schema::create('inventory_suppliers', function (Blueprint $table) {
@@ -61,7 +61,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->unique(['facility_id', 'code']);
-            $table->index(['facility_id', 'is_active']);
+            $table->index(['facility_id', 'is_active'], 'inv_suppliers_facility_active_idx');
         });
 
         Schema::create('purchase_orders', function (Blueprint $table) {
@@ -77,8 +77,8 @@ return new class extends Migration
             $table->decimal('subtotal', 14, 2)->default(0);
             $table->decimal('total', 14, 2)->default(0);
             $table->timestamps();
-            $table->index(['facility_id', 'status']);
-            $table->index(['supplier_id', 'status']);
+            $table->index(['facility_id', 'status'], 'po_facility_status_idx');
+            $table->index(['supplier_id', 'status'], 'po_supplier_status_idx');
         });
 
         Schema::create('purchase_order_items', function (Blueprint $table) {
@@ -103,8 +103,8 @@ return new class extends Migration
             $table->dateTime('received_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['facility_id', 'status']);
-            $table->index(['purchase_order_id', 'status']);
+            $table->index(['facility_id', 'status'], 'receipts_facility_status_idx');
+            $table->index(['purchase_order_id', 'status'], 'receipts_po_status_idx');
         });
 
         Schema::create('goods_receipt_items', function (Blueprint $table) {
@@ -133,9 +133,9 @@ return new class extends Migration
             $table->unsignedBigInteger('reference_id')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['store_id', 'inventory_item_id', 'created_at']);
-            $table->index(['movement_type', 'created_at']);
-            $table->index(['reference_type', 'reference_id']);
+            $table->index(['store_id', 'inventory_item_id', 'created_at'], 'stock_move_store_item_created_idx');
+            $table->index(['movement_type', 'created_at'], 'stock_move_type_created_idx');
+            $table->index(['reference_type', 'reference_id'], 'stock_move_reference_idx');
         });
     }
 
