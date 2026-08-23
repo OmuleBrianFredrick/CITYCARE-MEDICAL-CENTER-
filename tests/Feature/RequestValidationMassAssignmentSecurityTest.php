@@ -39,14 +39,23 @@ class RequestValidationMassAssignmentSecurityTest extends TestCase
         ]);
     }
 
-    public function test_appointment_model_fails_fast_on_unexpected_mass_assignment_in_tests(): void
+    public function test_appointment_model_rejects_server_managed_fields(): void
     {
         $this->expectException(MassAssignmentException::class);
 
         (new Appointment())->fill([
             'reason' => 'Routine review',
-            'appointment_number' => 'APT-SECURE',
-            'unexpected_privileged_flag' => true,
+            'status' => Appointment::STATUS_COMPLETED,
+        ]);
+    }
+
+    public function test_appointment_model_rejects_creator_assignment(): void
+    {
+        $this->expectException(MassAssignmentException::class);
+
+        (new Appointment())->fill([
+            'reason' => 'Routine review',
+            'created_by' => 999999,
         ]);
     }
 }
