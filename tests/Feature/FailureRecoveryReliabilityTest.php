@@ -59,7 +59,6 @@ class FailureRecoveryReliabilityTest extends TestCase
     {
         $facility = Facility::factory()->create();
         $staff = User::factory()->create([
-            'facility_id' => $facility->id,
             'user_type' => 'staff',
             'is_active' => true,
         ]);
