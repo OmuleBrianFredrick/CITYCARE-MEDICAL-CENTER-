@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePharmacyDispensingRequest;
 use App\Http\Requests\StorePharmacyPrescriptionRequest;
 use App\Models\ClinicalEncounter;
+use App\Models\InventoryStore;
 use App\Models\Medication;
+use App\Models\Prescription;
+use App\Services\PharmacyInventoryDispensingService;
 use App\Services\PharmacyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class PharmacyController extends Controller
 {
-    public function __construct(private readonly PharmacyService $pharmacy)
-    {
+    public function __construct(
+        private readonly PharmacyService $pharmacy,
+        private readonly PharmacyInventoryDispensingService $pharmacyInventory
+    ) {
     }
 
-    /**
-     * Pharmacy-scoped view of an encounter: patient/prescription/dispensing
-     * information only, without the rest of the clinical chart. Reached via
-     * the dedicated pharmacy.view permission rather than clinical.encounters.view,
-     * so pharmacy staff never need broader clinical access.
-     */
     public function show(ClinicalEncounter $encounter): View
     {
         $encounter->load([
@@ -41,5 +41,20 @@ class PharmacyController extends Controller
         $this->pharmacy->prescribe($encounter, $request->user(), $request->validated());
 
         return back()->with('status', "Prescription created for encounter {$encounter->encounter_number}.");
+    }
+
+    public function dispense(StorePharmacyDispensingRequest $request, Prescription $prescription): RedirectResponse
+    {
+        $store = InventoryStore::query()->findOrFail($request->integer('store_id'));
+
+        $this->pharmacyInventory->dispenseWithInventory(
+            $prescription,
+            $request->user(),
+            $store,
+            $request->validated('items'),
+            $request->validated('notes')
+        );
+
+        return back()->with('status', "Dispensing posted for prescription {$prescription->prescription_number}.");
     }
 }
