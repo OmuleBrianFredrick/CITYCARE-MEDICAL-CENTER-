@@ -152,6 +152,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/', [ReportingController::class, 'index'])->name('index');
         Route::post('/{reportDefinition}/run', [ReportingController::class, 'run'])->whereNumber('reportDefinition')->name('run');
         Route::get('/runs/{reportRun}', [ReportingController::class, 'show'])->whereNumber('reportRun')->name('show');
+        Route::post('/export', [ReportingController::class, 'export'])->name('export');
     });
 
     Route::get('/audit', [AuditLogController::class, 'index'])
