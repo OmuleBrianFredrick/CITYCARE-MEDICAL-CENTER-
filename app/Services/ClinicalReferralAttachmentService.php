@@ -19,7 +19,10 @@ class ClinicalReferralAttachmentService
             ]);
         }
 
-        $disk = 'public';
+        // Clinical referral attachments can contain protected health information.
+        // Keep them on Laravel's private local disk rather than the public disk,
+        // so possession of a predictable storage URL cannot expose patient files.
+        $disk = 'local';
         $path = $file->store('clinical-referrals/'.$referral->id, $disk);
 
         return ClinicalReferralAttachment::create([
