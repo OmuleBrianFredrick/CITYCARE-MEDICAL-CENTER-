@@ -87,7 +87,7 @@ class ReportingService
         return [
             'report' => 'clinical_activity',
             'total_encounters' => (int) $query->count(),
-            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
+            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->orderBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
     }
 
@@ -99,7 +99,7 @@ class ReportingService
         return [
             'report' => 'laboratory_activity',
             'total_orders' => (int) $query->count(),
-            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
+            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->orderBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
     }
 
@@ -111,7 +111,7 @@ class ReportingService
         return [
             'report' => 'pharmacy_activity',
             'total_prescriptions' => (int) $query->count(),
-            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
+            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->orderBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
     }
 
@@ -120,7 +120,7 @@ class ReportingService
         $query = DB::table('invoices');
         $this->applyDateAndFacility($query, $filters, 'created_at', 'facility_id');
 
-        $totals = $query->clone()->selectRaw('COALESCE(SUM(total),0) total, COALESCE(SUM(paid_amount),0) paid, COALESCE(SUM(outstanding_balance),0) outstanding')->first();
+        $totals = $query->clone()->selectRaw('COALESCE(SUM(total),0) total, COALESCE(SUM(paid_amount),0) paid, COALESCE(SUM(balance_due),0) outstanding')->first();
 
         return [
             'report' => 'billing_summary',
