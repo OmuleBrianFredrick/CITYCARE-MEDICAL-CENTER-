@@ -18,6 +18,8 @@ use Tests\TestCase;
 
 class BillingClinicalWorkspaceTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_doctor_can_view_encounter_billing_summary_without_payment_management(): void
     {
         $this->seed(CityCareAccessSeeder::class);
