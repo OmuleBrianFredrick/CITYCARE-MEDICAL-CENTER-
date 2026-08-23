@@ -45,9 +45,9 @@ class ReportingExportTest extends TestCase
         $callback();
         $csv = ob_get_clean();
 
-        $this->assertStringContainsString('Report,Clinical Activity', $csv);
-        $this->assertStringContainsString('Total Encounters,4', $csv);
-        $this->assertStringContainsString('By Status', $csv);
+        $this->assertStringContainsString('Report,"Clinical Activity"', $csv);
+        $this->assertStringContainsString('"Total Encounters",4', $csv);
+        $this->assertStringContainsString('"By Status"', $csv);
         $this->assertStringContainsString('closed', $csv);
         $this->assertStringContainsString('open', $csv);
     }
