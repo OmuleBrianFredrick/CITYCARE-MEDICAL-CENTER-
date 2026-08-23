@@ -22,6 +22,7 @@ class ReportingHttpWorkflowTest extends TestCase
 
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $staff->roles()->sync([Role::where('slug', 'administrator')->value('id')]);
+        $this->assertTrue($staff->fresh()->hasPermissionTo('reports.view'));
         $facility = Facility::factory()->create();
         $definition = ReportDefinition::factory()->create([
             'code' => 'clinical_activity',
@@ -80,9 +81,10 @@ class ReportingHttpWorkflowTest extends TestCase
 
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $staff->roles()->sync([Role::where('slug', 'administrator')->value('id')]);
+        $this->assertTrue($staff->fresh()->hasPermissionTo('reports.view'));
         $definition = ReportDefinition::factory()->create([
             'code' => 'clinical_activity',
-            'supported_filters' => ['facility_id'],
+            'supported_filters' => ['facility_id', 'date_from', 'date_to'],
         ]);
 
         $this->actingAs($staff)
