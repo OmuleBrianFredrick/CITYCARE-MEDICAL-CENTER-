@@ -8,10 +8,9 @@ use App\Models\InventoryItem;
 use App\Models\InventoryStockBalance;
 use App\Models\InventoryStore;
 use App\Models\InventorySupplier;
-use App\Models\PurchaseOrder;
 use App\Models\User;
 use App\Services\InventoryProcurementService;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -29,7 +28,7 @@ class DataIntegrityAtomicityReliabilityTest extends TestCase
             'inventory_item_id' => $item->id,
         ]);
 
-        $this->expectException(QueryException::class);
+        $this->expectException(UniqueConstraintViolationException::class);
 
         InventoryStockBalance::factory()->create([
             'store_id' => $store->id,
@@ -71,7 +70,6 @@ class DataIntegrityAtomicityReliabilityTest extends TestCase
         $staff = User::factory()->create([
             'user_type' => 'staff',
             'is_active' => true,
-            'facility_id' => $facility->id,
         ]);
         $store = InventoryStore::factory()->create([
             'facility_id' => $facility->id,
