@@ -9,12 +9,9 @@ use Tests\TestCase;
 
 class RequestValidationMassAssignmentSecurityTest extends TestCase
 {
-    public function test_appointment_request_rejects_server_managed_fields(): void
+    public function test_appointment_request_does_not_accept_server_managed_fields(): void
     {
-        $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-
         $request = new \App\Http\Requests\StoreAppointmentRequest();
-        $request->setUserResolver(fn () => $user);
         $request->merge([
             'facility_id' => 1,
             'department_id' => 1,
@@ -32,31 +29,24 @@ class RequestValidationMassAssignmentSecurityTest extends TestCase
         $this->assertArrayNotHasKey('created_by', $rules);
     }
 
-    public function test_user_model_rejects_unapproved_mass_assignment(): void
+    public function test_user_model_fails_fast_on_unapproved_mass_assignment_in_tests(): void
     {
-        $user = new User();
+        $this->expectException(MassAssignmentException::class);
 
-        try {
-            $user->fill(['name' => 'Safe User', 'last_login_at' => now()]);
-        } catch (MassAssignmentException) {
-            $this->assertTrue(true);
-            return;
-        }
-
-        $this->assertNull($user->last_login_at);
+        (new User())->fill([
+            'name' => 'Safe User',
+            'last_login_at' => now(),
+        ]);
     }
 
-    public function test_appointment_model_only_allows_explicitly_fillable_fields(): void
+    public function test_appointment_model_fails_fast_on_unexpected_mass_assignment_in_tests(): void
     {
-        $appointment = new Appointment();
-        $appointment->fill([
+        $this->expectException(MassAssignmentException::class);
+
+        (new Appointment())->fill([
             'reason' => 'Routine review',
             'appointment_number' => 'APT-SECURE',
             'unexpected_privileged_flag' => true,
         ]);
-
-        $this->assertSame('Routine review', $appointment->reason);
-        $this->assertSame('APT-SECURE', $appointment->appointment_number);
-        $this->assertNull($appointment->getAttribute('unexpected_privileged_flag'));
     }
 }
