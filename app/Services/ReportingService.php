@@ -30,7 +30,7 @@ class ReportingService
         return DB::transaction(function () use ($staff, $definition, $filters, $facilityId): ReportRun {
             $run = ReportRun::create([
                 'report_definition_id' => $definition->id,
-                'requested_by' => $staff->id,
+                'requested_by_id' => $staff->id,
                 'facility_id' => $facilityId,
                 'status' => ReportRun::STATUS_RUNNING,
                 'filters' => $filters,
@@ -49,7 +49,7 @@ class ReportingService
 
                 $run->update([
                     'status' => ReportRun::STATUS_COMPLETED,
-                    'result' => $result,
+                    'result_metadata' => $result,
                     'completed_at' => now(),
                 ]);
 
@@ -60,8 +60,8 @@ class ReportingService
                     'action' => 'completed',
                     'auditable_type' => ReportRun::class,
                     'auditable_id' => $run->id,
-                    'before' => null,
-                    'after' => ['report_definition_id' => $definition->id, 'filters' => $filters],
+                    'before_values' => null,
+                    'after_values' => ['report_definition_id' => $definition->id, 'filters' => $filters],
                     'context' => ['report_code' => $definition->code],
                     'occurred_at' => now(),
                 ]);
