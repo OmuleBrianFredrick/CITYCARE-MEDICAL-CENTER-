@@ -11,7 +11,9 @@ class SecurityConfigurationTest extends TestCase
         $this->assertTrue((bool) config('session.http_only'));
         $this->assertSame('lax', config('session.same_site'));
         $this->assertSame('json', config('session.serialization'));
-        $this->assertTrue((bool) config('session.secure'));
+
+        $expectedSecure = app()->environment('production');
+        $this->assertSame($expectedSecure, (bool) config('session.secure'));
     }
 
     public function test_password_reset_and_confirmation_security_defaults_are_bounded(): void
