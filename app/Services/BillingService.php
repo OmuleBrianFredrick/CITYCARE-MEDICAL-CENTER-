@@ -50,6 +50,7 @@ class BillingService
                     if ($existing->patient_id !== $patient->id || $existing->billable_service_id !== $service->id) {
                         throw ValidationException::withMessages(['idempotency_key' => 'This idempotency key is already associated with another charge.']);
                     }
+
                     return $existing;
                 }
             }
@@ -102,6 +103,15 @@ class BillingService
                 }
             }
 
+            $chargeCurrencies = $locked->pluck('currency')->filter()->unique()->values();
+            if ($chargeCurrencies->count() !== 1) {
+                throw ValidationException::withMessages(['charges' => 'All selected charges must use the same currency.']);
+            }
+            $currency = (string) $chargeCurrencies->first();
+            if (isset($data['currency']) && strtoupper((string) $data['currency']) !== strtoupper($currency)) {
+                throw ValidationException::withMessages(['currency' => 'The invoice currency must match the selected charges.']);
+            }
+
             $encounter = isset($data['encounter_id'])
                 ? ClinicalEncounter::query()->findOrFail($data['encounter_id'])
                 : null;
@@ -127,7 +137,7 @@ class BillingService
                 'created_by_id' => $staff->id,
                 'invoice_number' => $this->nextInvoiceNumber(),
                 'status' => Invoice::STATUS_ISSUED,
-                'currency' => $data['currency'] ?? 'UGX',
+                'currency' => $currency,
                 'subtotal' => $subtotal,
                 'discount_total' => $discountTotal,
                 'adjustment_total' => $adjustmentTotal,
@@ -222,7 +232,83 @@ class BillingService
                 $item->charge?->update(['status' => Charge::STATUS_PENDING]);
             });
             $invoice->update(['status' => Invoice::STATUS_CANCELLED, 'cancelled_by_id' => $staff->id, 'cancelled_at' => now(), 'cancel_reason' => $reason]);
+
             return $invoice->refresh();
+        }, 3);
+    }
+
+    public function voidCharge(User $staff, Charge $charge, string $reason): Charge
+    {
+        $this->assertActiveStaff($staff);
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages(['reason' => 'A reason is required to void a charge.']);
+        }
+
+        return DB::transaction(function () use ($staff, $charge, $reason) {
+            $charge = Charge::query()->lockForUpdate()->findOrFail($charge->id);
+            if (! $charge->isPending()) {
+                throw ValidationException::withMessages(['charge' => 'Only pending charges can be voided.']);
+            }
+
+            $charge->update([
+                'status' => Charge::STATUS_VOIDED,
+                'voided_by_id' => $staff->id,
+                'voided_at' => now(),
+                'void_reason' => trim($reason),
+            ]);
+
+            return $charge->refresh();
+        }, 3);
+    }
+
+    public function reversePayment(User $staff, Payment $payment, string $action, string $reason): Payment
+    {
+        $this->assertActiveStaff($staff);
+        if (! in_array($action, ['void', 'refund'], true)) {
+            throw ValidationException::withMessages(['action' => 'The payment reversal action is invalid.']);
+        }
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages(['reason' => 'A reason is required to reverse a payment.']);
+        }
+
+        return DB::transaction(function () use ($staff, $payment, $action, $reason) {
+            $invoice = Invoice::query()->lockForUpdate()->findOrFail($payment->invoice_id);
+            $payment = Payment::query()
+                ->where('invoice_id', $invoice->id)
+                ->lockForUpdate()
+                ->findOrFail($payment->id);
+
+            if (! $payment->isCompleted()) {
+                throw ValidationException::withMessages(['payment' => 'Only completed payments can be voided or refunded.']);
+            }
+            if ($invoice->isCancelled()) {
+                throw ValidationException::withMessages(['invoice' => 'Payments on a cancelled invoice cannot be reversed.']);
+            }
+
+            $payment->update([
+                'status' => $action === 'refund' ? Payment::STATUS_REFUNDED : Payment::STATUS_VOIDED,
+                'voided_by_id' => $staff->id,
+                'voided_at' => now(),
+                'void_reason' => trim($reason),
+            ]);
+
+            $paid = round((float) Payment::query()
+                ->where('invoice_id', $invoice->id)
+                ->where('status', Payment::STATUS_COMPLETED)
+                ->sum('amount'), 2);
+            $due = max(0, round((float) $invoice->total - $paid, 2));
+            $status = $due <= 0
+                ? Invoice::STATUS_PAID
+                : ($paid > 0 ? Invoice::STATUS_PARTIALLY_PAID : Invoice::STATUS_ISSUED);
+
+            $invoice->update([
+                'paid_amount' => $paid,
+                'balance_due' => $due,
+                'status' => $status,
+                'paid_at' => $status === Invoice::STATUS_PAID ? ($invoice->paid_at ?? now()) : null,
+            ]);
+
+            return $payment->refresh();
         }, 3);
     }
 
@@ -234,14 +320,19 @@ class BillingService
                 throw ValidationException::withMessages(['invoice' => 'Completed or cancelled invoices cannot be recalculated.']);
             }
             $subtotal = round($invoice->lineItems->sum(fn ($i) => (float) $i->line_subtotal), 2);
-            $discount = round($invoice->lineItems->sum(fn ($i) => (float) $i->discount_amount), 2);
-            $adjustment = round($invoice->lineItems->sum(fn ($i) => (float) $i->adjustment_amount), 2);
+            $lineDiscount = round($invoice->lineItems->sum(fn ($i) => (float) $i->discount_amount), 2);
+            $lineAdjustment = round($invoice->lineItems->sum(fn ($i) => (float) $i->adjustment_amount), 2);
+            $invoiceDiscount = round(max(0, (float) $invoice->discount_total - $lineDiscount), 2);
+            $invoiceAdjustment = round((float) $invoice->adjustment_total - $lineAdjustment, 2);
+            $discount = round($lineDiscount + $invoiceDiscount, 2);
+            $adjustment = round($lineAdjustment + $invoiceAdjustment, 2);
             $total = round($subtotal - $discount + $adjustment, 2);
             if ($total < 0 || $invoice->paid_amount > $total) {
                 throw ValidationException::withMessages(['invoice' => 'The recalculated invoice total is invalid.']);
             }
             $due = round($total - (float) $invoice->paid_amount, 2);
             $invoice->update(['subtotal' => $subtotal, 'discount_total' => $discount, 'adjustment_total' => $adjustment, 'total' => $total, 'balance_due' => max(0, $due)]);
+
             return $invoice->refresh();
         }, 3);
     }
@@ -294,13 +385,19 @@ class BillingService
 
     private function nextInvoiceNumber(): string
     {
-        do { $number = 'INV-'.now()->format('Ymd').'-'.str()->upper(str()->random(6)); } while (Invoice::where('invoice_number', $number)->exists());
+        do {
+            $number = 'INV-'.now()->format('Ymd').'-'.str()->upper(str()->random(6));
+        } while (Invoice::where('invoice_number', $number)->exists());
+
         return $number;
     }
 
     private function nextReceiptNumber(): string
     {
-        do { $number = 'RCT-'.now()->format('Ymd').'-'.str()->upper(str()->random(6)); } while (Payment::where('receipt_number', $number)->exists());
+        do {
+            $number = 'RCT-'.now()->format('Ymd').'-'.str()->upper(str()->random(6));
+        } while (Payment::where('receipt_number', $number)->exists());
+
         return $number;
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingCatalogController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ClinicalCareController;
 use App\Http\Controllers\ClinicalDiagnosisController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\ClinicalReferralAttachmentController;
 use App\Http\Controllers\ClinicalReferralController;
 use App\Http\Controllers\ClinicalTreatmentPlanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryCatalogController;
 use App\Http\Controllers\InventoryProcurementController;
 use App\Http\Controllers\LaboratoryOrderController;
 use App\Http\Controllers\LaboratoryWorkspaceController;
@@ -122,6 +124,18 @@ Route::middleware(['auth', 'active'])->group(function () {
     });
 
     Route::prefix('billing')->name('billing.')->group(function () {
+        Route::get('/', [BillingController::class, 'index'])
+            ->middleware('permission:billing.view')
+            ->name('index');
+
+        Route::middleware('permission:billing.manage')->group(function () {
+            Route::get('/catalogue', [BillingCatalogController::class, 'index'])->name('catalogue.index');
+            Route::post('/catalogue/services', [BillingCatalogController::class, 'storeService'])->name('catalogue.services.store');
+            Route::put('/catalogue/services/{billableService}', [BillingCatalogController::class, 'updateService'])->whereNumber('billableService')->name('catalogue.services.update');
+            Route::post('/catalogue/services/{billableService}/prices', [BillingCatalogController::class, 'storePrice'])->whereNumber('billableService')->name('catalogue.prices.store');
+            Route::put('/catalogue/prices/{servicePrice}', [BillingCatalogController::class, 'updatePrice'])->whereNumber('servicePrice')->name('catalogue.prices.update');
+        });
+
         Route::get('/patients/{patient}', [BillingController::class, 'show'])
             ->middleware('permission:billing.view')
             ->whereNumber('patient')
@@ -147,10 +161,33 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->whereNumber('invoice')
             ->name('invoices.cancel');
 
+        Route::post('/charges/{charge}/void', [BillingController::class, 'voidCharge'])
+            ->middleware('permission:billing.work.manage')
+            ->whereNumber('charge')
+            ->name('charges.void');
+
+        Route::post('/payments/{payment}/reverse', [BillingController::class, 'reversePayment'])
+            ->middleware('permission:billing.work.manage')
+            ->whereNumber('payment')
+            ->name('payments.reverse');
+
         Route::post('/invoices/{invoice}/refresh', [BillingController::class, 'refreshInvoice'])
             ->middleware('permission:billing.work.manage')
             ->whereNumber('invoice')
             ->name('invoices.refresh');
+    });
+
+    Route::prefix('inventory')->name('inventory.')->middleware('permission:inventory.view')->group(function () {
+        Route::get('/catalogue', [InventoryCatalogController::class, 'index'])->name('catalogue.index');
+        Route::middleware('permission:inventory.manage')->group(function () {
+            Route::post('/catalogue/items', [InventoryCatalogController::class, 'storeItem'])->name('catalogue.items.store');
+            Route::put('/catalogue/items/{inventoryItem}', [InventoryCatalogController::class, 'updateItem'])->whereNumber('inventoryItem')->name('catalogue.items.update');
+            Route::post('/catalogue/suppliers', [InventoryCatalogController::class, 'storeSupplier'])->name('catalogue.suppliers.store');
+            Route::put('/catalogue/suppliers/{inventorySupplier}', [InventoryCatalogController::class, 'updateSupplier'])->whereNumber('inventorySupplier')->name('catalogue.suppliers.update');
+            Route::post('/catalogue/stores', [InventoryCatalogController::class, 'storeStore'])->name('catalogue.stores.store');
+            Route::put('/catalogue/stores/{inventoryStore}', [InventoryCatalogController::class, 'updateStore'])->whereNumber('inventoryStore')->name('catalogue.stores.update');
+            Route::post('/adjustments', [InventoryCatalogController::class, 'adjust'])->name('adjustments.store');
+        });
     });
 
     Route::prefix('inventory/procurement')->name('inventory.procurement.')->middleware('permission:inventory.view')->group(function () {
@@ -159,6 +196,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/{purchaseOrder}', [InventoryProcurementController::class, 'show'])->whereNumber('purchaseOrder')->name('show');
         Route::post('/', [InventoryProcurementController::class, 'store'])->middleware('permission:inventory.manage')->name('store');
         Route::post('/{purchaseOrder}/items', [InventoryProcurementController::class, 'addItem'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('items.store');
+        Route::post('/{purchaseOrder}/submit', [InventoryProcurementController::class, 'submit'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('submit');
         Route::post('/{purchaseOrder}/receive', [InventoryProcurementController::class, 'receive'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('receive');
         Route::post('/{purchaseOrder}/cancel', [InventoryProcurementController::class, 'cancel'])->middleware('permission:inventory.manage')->whereNumber('purchaseOrder')->name('cancel');
     });

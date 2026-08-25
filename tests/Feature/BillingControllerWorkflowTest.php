@@ -12,6 +12,7 @@ use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePoint;
 use App\Models\ServicePrice;
+use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\BillingService;
 use Database\Seeders\CityCareAccessSeeder;
@@ -32,7 +33,7 @@ class BillingControllerWorkflowTest extends TestCase
     public function test_cashier_can_complete_charge_invoice_and_payment_http_workflow(): void
     {
         [$patient, $service, $price, $encounter] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
 
         $this->actingAs($cashier)
             ->post(route('billing.charges.store', $patient), [
@@ -93,7 +94,7 @@ class BillingControllerWorkflowTest extends TestCase
     public function test_charge_request_rejects_invalid_input_before_service_execution(): void
     {
         [$patient, $service, $price] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
 
         $this->actingAs($cashier)
             ->post(route('billing.charges.store', $patient), [
@@ -111,7 +112,7 @@ class BillingControllerWorkflowTest extends TestCase
     public function test_invoice_request_rejects_duplicate_charge_ids(): void
     {
         [$patient, $service, $price] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
         $charge = app(BillingService::class)->addCharge($cashier, $patient, $service, $price);
 
         $this->actingAs($cashier)
@@ -127,7 +128,7 @@ class BillingControllerWorkflowTest extends TestCase
     public function test_invoice_workflow_rejects_closed_encounter_linkage(): void
     {
         [$patient, $service, $price, $encounter] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
         $charge = app(BillingService::class)->addCharge($cashier, $patient, $service, $price, ['encounter' => $encounter]);
 
         $encounter->update(['status' => ClinicalEncounter::STATUS_CLOSED, 'closed_at' => now()]);
@@ -147,7 +148,7 @@ class BillingControllerWorkflowTest extends TestCase
     public function test_payment_workflow_rejects_overpayment_and_completed_invoice_payment(): void
     {
         [$patient, $service, $price] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
         $billing = app(BillingService::class);
         $charge = $billing->addCharge($cashier, $patient, $service, $price);
         $invoice = $billing->createInvoice($cashier, $patient, [$charge]);
@@ -181,7 +182,7 @@ class BillingControllerWorkflowTest extends TestCase
     public function test_unpaid_invoice_can_be_cancelled_and_charge_is_released(): void
     {
         [$patient, $service, $price] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
         $billing = app(BillingService::class);
         $charge = $billing->addCharge($cashier, $patient, $service, $price);
         $invoice = $billing->createInvoice($cashier, $patient, [$charge]);
@@ -216,7 +217,7 @@ class BillingControllerWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        $staff = $this->staffWithRole('cashier');
+        $staff = $this->staffWithRole('cashier', $facility);
         $department = Department::factory()->create(['facility_id' => $facility->id]);
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
         $encounter = ClinicalEncounter::create([
@@ -235,7 +236,7 @@ class BillingControllerWorkflowTest extends TestCase
         return [$patient, $service, $price, $encounter];
     }
 
-    private function staffWithRole(string $roleSlug): User
+    private function staffWithRole(string $roleSlug, ?Facility $facility = null): User
     {
         $user = User::factory()->create([
             'user_type' => 'staff',
@@ -244,6 +245,11 @@ class BillingControllerWorkflowTest extends TestCase
         ]);
 
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+
+        if ($facility) {
+            $department = Department::factory()->create(['facility_id' => $facility->id]);
+            StaffProfile::create(['user_id' => $user->id, 'department_id' => $department->id]);
+        }
 
         return $user;
     }

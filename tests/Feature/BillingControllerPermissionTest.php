@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\BillableService;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePrice;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,7 +28,7 @@ class BillingControllerPermissionTest extends TestCase
     public function test_cashier_can_view_billing(): void
     {
         [$patient] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
 
         $this->actingAs($cashier)->get(route('billing.show', $patient))->assertOk();
     }
@@ -36,7 +38,7 @@ class BillingControllerPermissionTest extends TestCase
         [$patient] = $this->billingSetup();
 
         foreach (['doctor', 'receptionist'] as $role) {
-            $user = $this->staffWithRole($role);
+            $user = $this->staffWithRole($role, $patient->facility);
             $this->actingAs($user)->get(route('billing.show', $patient))->assertOk();
             $this->actingAs($user)->post(route('billing.charges.store', $patient), [
                 'billable_service_id' => 1,
@@ -49,7 +51,7 @@ class BillingControllerPermissionTest extends TestCase
     public function test_cashier_can_enter_financial_workflows(): void
     {
         [$patient, $service, $price] = $this->billingSetup();
-        $cashier = $this->staffWithRole('cashier');
+        $cashier = $this->staffWithRole('cashier', $patient->facility);
 
         $this->actingAs($cashier)->post(route('billing.charges.store', $patient), [
             'billable_service_id' => $service->id,
@@ -63,7 +65,7 @@ class BillingControllerPermissionTest extends TestCase
         [$patient, $service, $price] = $this->billingSetup();
 
         foreach (['pharmacy', 'laboratory'] as $role) {
-            $user = $this->staffWithRole($role);
+            $user = $this->staffWithRole($role, $patient->facility);
             $this->actingAs($user)->get(route('billing.show', $patient))->assertForbidden();
             $this->actingAs($user)->post(route('billing.charges.store', $patient), [
                 'billable_service_id' => $service->id,
@@ -91,7 +93,7 @@ class BillingControllerPermissionTest extends TestCase
         return [$patient, $service, $price];
     }
 
-    private function staffWithRole(string $roleSlug): User
+    private function staffWithRole(string $roleSlug, ?Facility $facility = null): User
     {
         $user = User::factory()->create([
             'user_type' => 'staff',
@@ -100,6 +102,11 @@ class BillingControllerPermissionTest extends TestCase
         ]);
 
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+
+        if ($facility) {
+            $department = Department::factory()->create(['facility_id' => $facility->id]);
+            StaffProfile::create(['user_id' => $user->id, 'department_id' => $department->id]);
+        }
 
         return $user;
     }

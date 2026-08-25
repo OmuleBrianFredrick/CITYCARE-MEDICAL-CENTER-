@@ -62,7 +62,8 @@ class DashboardWorkspaceService
             ['label' => 'Clinical care', 'route' => 'encounters.index', 'active' => 'encounters.*', 'permission' => 'clinical.encounters.view'],
             ['label' => 'Laboratory', 'route' => 'laboratory.index', 'active' => 'laboratory.*', 'permission' => 'laboratory.view'],
             ['label' => 'Pharmacy', 'route' => 'pharmacy.index', 'active' => 'pharmacy.*', 'permission' => 'pharmacy.view'],
-            ['label' => 'Inventory', 'route' => 'inventory.procurement.index', 'active' => 'inventory.procurement.*', 'permission' => 'inventory.view'],
+            ['label' => 'Billing', 'route' => 'billing.index', 'active' => 'billing.*', 'permission' => 'billing.view'],
+            ['label' => 'Inventory', 'route' => 'inventory.procurement.index', 'active' => 'inventory.*', 'permission' => 'inventory.view'],
             ['label' => 'Reports', 'route' => 'reports.index', 'active' => 'reports.*', 'permission' => 'reports.view'],
             ['label' => 'Audit log', 'route' => 'audit.index', 'active' => 'audit.*', 'permission' => 'audit.view'],
             ['label' => 'Organization', 'route' => 'organization.index', 'active' => 'organization.*', 'permission' => 'organization.view'],
@@ -150,8 +151,8 @@ class DashboardWorkspaceService
                 'Outstanding balance',
                 sprintf('%s %s', $facility->currency, number_format((float) $outstanding, 2)),
                 'Open invoice balances for this facility.',
-                route('patients.index'),
-                'Find a patient',
+                route('billing.index'),
+                'Open billing queue',
             );
         }
 
@@ -192,6 +193,7 @@ class DashboardWorkspaceService
         }
         if ($user->hasPermissionTo('inventory.manage')) {
             $actions[] = ['label' => 'Create purchase order', 'description' => 'Begin a new procurement workflow.', 'url' => route('inventory.procurement.create')];
+            $actions[] = ['label' => 'Manage inventory catalogue', 'description' => 'Maintain items, stores, suppliers, and controlled stock adjustments.', 'url' => route('inventory.catalogue.index')];
         }
         if ($user->hasPermissionTo('reports.view')) {
             $actions[] = ['label' => 'Run report', 'description' => 'Review available operational and management reports.', 'url' => route('reports.index')];

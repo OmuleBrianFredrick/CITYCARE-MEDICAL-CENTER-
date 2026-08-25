@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\InventoryItem;
 use App\Models\InventoryStore;
 use App\Models\InventorySupplier;
+use App\Models\PurchaseOrder;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\InventoryProcurementService;
 use Database\Seeders\CityCareAccessSeeder;
@@ -38,7 +41,7 @@ class InventoryProcurementControllerTest extends TestCase
             ]],
         ]);
 
-        $order = \App\Models\PurchaseOrder::query()->latest('id')->firstOrFail();
+        $order = PurchaseOrder::query()->latest('id')->firstOrFail();
         $create->assertRedirect(route('inventory.procurement.show', $order));
 
         $this->actingAs($staff)
@@ -47,7 +50,12 @@ class InventoryProcurementControllerTest extends TestCase
             ->assertSee($order->order_number)
             ->assertSee($item->name);
 
-        $order->update(['status' => 'ordered']);
+        $this->actingAs($staff)
+            ->post(route('inventory.procurement.submit', $order))
+            ->assertRedirect();
+
+        $this->assertSame('ordered', $order->fresh()->status);
+        $this->assertNotNull($order->fresh()->ordered_at);
         $poItem = $order->items()->firstOrFail();
 
         $this->actingAs($staff)
@@ -131,6 +139,8 @@ class InventoryProcurementControllerTest extends TestCase
         $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $role = Role::where('slug', $roleSlug)->firstOrFail();
         $user->roles()->attach($role->id);
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::create(['user_id' => $user->id, 'department_id' => $department->id]);
 
         $store = InventoryStore::factory()->create(['facility_id' => $facility->id, 'is_active' => true]);
         $supplier = InventorySupplier::factory()->create(['facility_id' => $facility->id, 'is_active' => true]);

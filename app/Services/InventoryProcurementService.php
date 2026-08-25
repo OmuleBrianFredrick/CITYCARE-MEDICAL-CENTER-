@@ -17,10 +17,14 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryProcurementService
 {
+    public function __construct(private readonly FacilityAccessService $facilities) {}
+
     public function createPurchaseOrder(User $staff, InventorySupplier $supplier, InventoryStore $store, array $data): PurchaseOrder
     {
         $this->assertActiveStaff($staff);
         $this->assertActiveStore($store);
+        $this->assertActiveSupplier($supplier);
+        $this->assertFacilityAccess($staff, $store->facility_id);
         $this->assertSameFacility($supplier->facility_id, $store->facility_id, 'Supplier and store must belong to the same facility.');
 
         $items = $data['items'] ?? [];
@@ -35,8 +39,8 @@ class InventoryProcurementService
                 'store_id' => $store->id,
                 'created_by_id' => $staff->id,
                 'order_number' => $this->nextOrderNumber(),
-                'status' => 'draft',
-                'ordered_at' => $data['ordered_at'] ?? null,
+                'status' => PurchaseOrder::STATUS_DRAFT,
+                'ordered_at' => null,
                 'notes' => $data['notes'] ?? null,
                 'subtotal' => 0,
                 'total' => 0,
@@ -71,6 +75,7 @@ class InventoryProcurementService
             }
 
             $order->update(['subtotal' => round($subtotal, 2), 'total' => round($subtotal, 2)]);
+
             return $order->load('items');
         });
     }
@@ -78,17 +83,7 @@ class InventoryProcurementService
     public function addPurchaseOrderItem(User $staff, PurchaseOrder $order, array $data): PurchaseOrderItem
     {
         $this->assertActiveStaff($staff);
-        $this->assertEditableOrder($order);
-        $this->assertActiveStore($order->store);
         $this->assertFacilityAccess($staff, $order->facility_id);
-
-        $inventoryItem = InventoryItem::query()->find($data['inventory_item_id'] ?? null);
-        if (! $inventoryItem || ! $inventoryItem->is_active || $inventoryItem->facility_id !== $order->facility_id) {
-            throw ValidationException::withMessages(['inventory_item_id' => 'The selected inventory item is invalid, inactive, or belongs to another facility.']);
-        }
-        if ($order->items()->where('inventory_item_id', $inventoryItem->id)->exists()) {
-            throw ValidationException::withMessages(['inventory_item_id' => 'This inventory item is already present on the purchase order.']);
-        }
 
         $quantity = (float) ($data['quantity_ordered'] ?? 0);
         $unitCost = (float) ($data['unit_cost'] ?? 0);
@@ -96,7 +91,19 @@ class InventoryProcurementService
         $this->assertNonNegative($unitCost, 'unit_cost');
         $lineTotal = round($quantity * $unitCost, 2);
 
-        return DB::transaction(function () use ($order, $inventoryItem, $quantity, $unitCost, $lineTotal) {
+        return DB::transaction(function () use ($order, $data, $quantity, $unitCost, $lineTotal) {
+            $order = PurchaseOrder::query()->with('store')->lockForUpdate()->findOrFail($order->id);
+            $this->assertEditableOrder($order);
+            $this->assertActiveStore($order->store);
+
+            $inventoryItem = InventoryItem::query()->find($data['inventory_item_id'] ?? null);
+            if (! $inventoryItem || ! $inventoryItem->is_active || $inventoryItem->facility_id !== $order->facility_id) {
+                throw ValidationException::withMessages(['inventory_item_id' => 'The selected inventory item is invalid, inactive, or belongs to another facility.']);
+            }
+            if ($order->items()->where('inventory_item_id', $inventoryItem->id)->exists()) {
+                throw ValidationException::withMessages(['inventory_item_id' => 'This inventory item is already present on the purchase order.']);
+            }
+
             $item = $order->items()->create([
                 'inventory_item_id' => $inventoryItem->id,
                 'quantity_ordered' => $quantity,
@@ -104,8 +111,39 @@ class InventoryProcurementService
                 'line_total' => $lineTotal,
             ]);
             $this->recalculateOrder($order->fresh('items'));
+
             return $item->refresh();
-        });
+        }, 3);
+    }
+
+    public function submitPurchaseOrder(User $staff, PurchaseOrder $order): PurchaseOrder
+    {
+        $this->assertActiveStaff($staff);
+        $this->assertFacilityAccess($staff, $order->facility_id);
+
+        return DB::transaction(function () use ($order) {
+            $order = PurchaseOrder::query()
+                ->with(['items', 'store', 'supplier'])
+                ->lockForUpdate()
+                ->findOrFail($order->id);
+
+            if (! $order->isDraft()) {
+                throw ValidationException::withMessages(['purchase_order' => 'Only draft purchase orders can be submitted.']);
+            }
+            if ($order->items->isEmpty()) {
+                throw ValidationException::withMessages(['purchase_order' => 'A purchase order must contain at least one item before submission.']);
+            }
+
+            $this->assertActiveStore($order->store);
+            $this->assertActiveSupplier($order->supplier);
+
+            $order->update([
+                'status' => PurchaseOrder::STATUS_ORDERED,
+                'ordered_at' => now()->toDateString(),
+            ]);
+
+            return $order->refresh();
+        }, 3);
     }
 
     public function receiveStock(User $staff, PurchaseOrder $order, InventoryStore $store, array $data): GoodsReceipt
@@ -116,7 +154,7 @@ class InventoryProcurementService
         if ($store->facility_id !== $order->facility_id || $store->id !== $order->store_id) {
             throw ValidationException::withMessages(['store_id' => 'The receiving store must match the purchase order store and facility.']);
         }
-        if (! in_array($order->status, ['ordered', 'partially_received'], true)) {
+        if (! in_array($order->status, [PurchaseOrder::STATUS_ORDERED, PurchaseOrder::STATUS_PARTIALLY_RECEIVED], true)) {
             throw ValidationException::withMessages(['purchase_order' => 'Only open purchase orders can receive stock.']);
         }
 
@@ -127,7 +165,7 @@ class InventoryProcurementService
 
         return DB::transaction(function () use ($staff, $order, $store, $items, $data) {
             $order = PurchaseOrder::query()->lockForUpdate()->findOrFail($order->id);
-            if (! in_array($order->status, ['ordered', 'partially_received'], true)) {
+            if (! in_array($order->status, [PurchaseOrder::STATUS_ORDERED, PurchaseOrder::STATUS_PARTIALLY_RECEIVED], true)) {
                 throw ValidationException::withMessages(['purchase_order' => 'Only open purchase orders can receive stock.']);
             }
 
@@ -170,6 +208,7 @@ class InventoryProcurementService
                     throw ValidationException::withMessages(['inventory_item_id' => 'The inventory item is inactive or unavailable.']);
                 }
                 $unitCost = (float) ($itemData['unit_cost'] ?? $poItem->unit_cost);
+                $this->assertNonNegative($unitCost, 'unit_cost');
                 $lineTotal = round($quantity * $unitCost, 2);
 
                 $receiptItem = $receipt->items()->create([
@@ -223,6 +262,7 @@ class InventoryProcurementService
             }
 
             $this->refreshPurchaseOrderStatus($order->fresh('items'));
+
             return $receipt->load('items');
         }, 3);
     }
@@ -234,28 +274,37 @@ class InventoryProcurementService
         if ($reason === '') {
             throw ValidationException::withMessages(['reason' => 'A cancellation reason is required.']);
         }
-        if (in_array($order->status, ['completed', 'cancelled'], true)) {
-            throw ValidationException::withMessages(['purchase_order' => 'Completed or cancelled purchase orders cannot be cancelled.']);
-        }
-        if ($order->goodsReceipts()->exists()) {
-            throw ValidationException::withMessages(['purchase_order' => 'A purchase order with received stock cannot be cancelled.']);
-        }
 
-        $order->update(['status' => 'cancelled', 'notes' => trim(($order->notes ? $order->notes . "\n" : '') . 'Cancellation: ' . $reason)]);
-        return $order->refresh();
+        return DB::transaction(function () use ($order, $reason) {
+            $order = PurchaseOrder::query()->lockForUpdate()->findOrFail($order->id);
+            if (! in_array($order->status, [PurchaseOrder::STATUS_DRAFT, PurchaseOrder::STATUS_ORDERED], true)) {
+                throw ValidationException::withMessages(['purchase_order' => 'Only draft or unreceived ordered purchase orders can be cancelled.']);
+            }
+            if ($order->goodsReceipts()->exists()) {
+                throw ValidationException::withMessages(['purchase_order' => 'A purchase order with received stock cannot be cancelled.']);
+            }
+
+            $order->update([
+                'status' => PurchaseOrder::STATUS_CANCELLED,
+                'notes' => trim(($order->notes ? $order->notes."\n" : '').'Cancellation: '.$reason),
+            ]);
+
+            return $order->refresh();
+        }, 3);
     }
 
     private function refreshPurchaseOrderStatus(PurchaseOrder $order): void
     {
         $fullyReceived = $order->items->every(function (PurchaseOrderItem $item) {
             $received = (float) GoodsReceiptItem::query()->where('purchase_order_item_id', $item->id)->sum('quantity_received');
+
             return $received >= (float) $item->quantity_ordered;
         });
         $hasReceipts = $order->items->contains(function (PurchaseOrderItem $item) {
             return GoodsReceiptItem::query()->where('purchase_order_item_id', $item->id)->exists();
         });
 
-        $order->update(['status' => $fullyReceived ? 'completed' : ($hasReceipts ? 'partially_received' : $order->status)]);
+        $order->update(['status' => $fullyReceived ? PurchaseOrder::STATUS_COMPLETED : ($hasReceipts ? PurchaseOrder::STATUS_PARTIALLY_RECEIVED : $order->status)]);
     }
 
     private function recalculateOrder(PurchaseOrder $order): void
@@ -278,6 +327,13 @@ class InventoryProcurementService
         }
     }
 
+    private function assertActiveSupplier(InventorySupplier $supplier): void
+    {
+        if (! $supplier->is_active) {
+            throw ValidationException::withMessages(['supplier_id' => 'The selected supplier is inactive.']);
+        }
+    }
+
     private function assertSameFacility(int $leftFacilityId, int $rightFacilityId, string $message): void
     {
         if ($leftFacilityId !== $rightFacilityId) {
@@ -287,15 +343,13 @@ class InventoryProcurementService
 
     private function assertFacilityAccess(User $staff, int $facilityId): void
     {
-        if (! $staff->isStaff()) {
-            throw ValidationException::withMessages(['staff_id' => 'Inventory operations require staff access.']);
-        }
+        $this->facilities->assertFacilityAccessible($staff, $facilityId);
     }
 
     private function assertEditableOrder(PurchaseOrder $order): void
     {
-        if (! in_array($order->status, ['draft', 'ordered', 'partially_received'], true)) {
-            throw ValidationException::withMessages(['purchase_order' => 'The purchase order cannot be modified in its current state.']);
+        if (! $order->isDraft()) {
+            throw ValidationException::withMessages(['purchase_order' => 'Only draft purchase orders can be modified.']);
         }
     }
 
@@ -316,16 +370,18 @@ class InventoryProcurementService
     private function nextOrderNumber(): string
     {
         do {
-            $number = 'PO-' . now()->format('Ymd') . '-' . str()->upper(str()->random(6));
+            $number = 'PO-'.now()->format('Ymd').'-'.str()->upper(str()->random(6));
         } while (PurchaseOrder::query()->where('order_number', $number)->exists());
+
         return $number;
     }
 
     private function nextReceiptNumber(): string
     {
         do {
-            $number = 'GRN-' . now()->format('Ymd') . '-' . str()->upper(str()->random(6));
+            $number = 'GRN-'.now()->format('Ymd').'-'.str()->upper(str()->random(6));
         } while (GoodsReceipt::query()->where('receipt_number', $number)->exists());
+
         return $number;
     }
 }

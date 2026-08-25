@@ -18,7 +18,7 @@ class StoreBillingInvoiceRequest extends FormRequest
             'charges.*' => ['required', 'integer', 'distinct', 'exists:charges,id'],
             'discount_amount' => ['nullable', 'numeric', 'gte:0'],
             'adjustment_amount' => ['nullable', 'numeric'],
-            'currency' => ['nullable', 'string', 'max:10'],
+            'currency' => ['nullable', 'string', 'size:3'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'encounter_id' => ['nullable', 'integer', 'exists:clinical_encounters,id'],
         ];

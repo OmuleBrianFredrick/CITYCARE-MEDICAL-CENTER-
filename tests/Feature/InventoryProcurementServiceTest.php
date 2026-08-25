@@ -2,14 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Models\GoodsReceipt;
-use App\Models\GoodsReceiptItem;
+use App\Models\Department;
+use App\Models\Facility;
 use App\Models\InventoryItem;
 use App\Models\InventoryStockBalance;
 use App\Models\InventoryStockMovement;
 use App\Models\InventoryStore;
 use App\Models\InventorySupplier;
 use App\Models\PurchaseOrder;
+use App\Models\Role;
+use App\Models\StaffProfile;
+use App\Models\User;
 use App\Services\InventoryProcurementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -59,12 +62,51 @@ class InventoryProcurementServiceTest extends TestCase
         ]);
     }
 
+    public function test_submission_transitions_draft_and_prevents_further_item_changes(): void
+    {
+        [$staff, $store, $supplier, $itemA, $itemB] = $this->context();
+        $service = app(InventoryProcurementService::class);
+        $order = $service->createPurchaseOrder($staff, $supplier, $store, [
+            'items' => [['inventory_item_id' => $itemA->id, 'quantity_ordered' => 2, 'unit_cost' => 1000]],
+        ]);
+
+        $service->submitPurchaseOrder($staff, $order);
+
+        $this->assertSame(PurchaseOrder::STATUS_ORDERED, $order->fresh()->status);
+        $this->assertNotNull($order->fresh()->ordered_at);
+
+        try {
+            $service->addPurchaseOrderItem($staff, $order->fresh(), [
+                'inventory_item_id' => $itemB->id,
+                'quantity_ordered' => 1,
+                'unit_cost' => 100,
+            ]);
+            $this->fail('Submitted purchase orders must not accept new items.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('purchase_order', $exception->errors());
+        }
+
+        $this->expectException(ValidationException::class);
+        $service->submitPurchaseOrder($staff, $order->fresh());
+    }
+
+    public function test_inactive_supplier_cannot_be_used_for_procurement(): void
+    {
+        [$staff, $store, $supplier, $itemA] = $this->context();
+        $supplier->update(['is_active' => false]);
+
+        $this->expectException(ValidationException::class);
+        app(InventoryProcurementService::class)->createPurchaseOrder($staff, $supplier->fresh(), $store, [
+            'items' => [['inventory_item_id' => $itemA->id, 'quantity_ordered' => 1, 'unit_cost' => 1]],
+        ]);
+    }
+
     public function test_invalid_duplicate_and_cross_facility_procurement_items_are_rejected(): void
     {
         [$staff, $store, $supplier, $itemA] = $this->context();
         $service = app(InventoryProcurementService::class);
 
-        $otherFacility = \App\Models\Facility::factory()->create();
+        $otherFacility = Facility::factory()->create();
         $otherItem = InventoryItem::factory()->create(['facility_id' => $otherFacility->id, 'is_active' => true]);
 
         try {
@@ -93,7 +135,7 @@ class InventoryProcurementServiceTest extends TestCase
         $order = $service->createPurchaseOrder($staff, $supplier, $store, [
             'items' => [['inventory_item_id' => $itemA->id, 'quantity_ordered' => 10, 'unit_cost' => 1000]],
         ]);
-        $order->update(['status' => 'ordered']);
+        $service->submitPurchaseOrder($staff, $order);
         $poItem = $order->items()->first();
 
         $partial = $service->receiveStock($staff, $order->fresh('store'), $store, [
@@ -121,7 +163,7 @@ class InventoryProcurementServiceTest extends TestCase
         $order = $service->createPurchaseOrder($staff, $supplier, $store, [
             'items' => [['inventory_item_id' => $itemA->id, 'quantity_ordered' => 5, 'unit_cost' => 1000]],
         ]);
-        $order->update(['status' => 'ordered']);
+        $service->submitPurchaseOrder($staff, $order);
         $poItem = $order->items()->first();
 
         $service->receiveStock($staff, $order->fresh('store'), $store, [
@@ -202,9 +244,10 @@ class InventoryProcurementServiceTest extends TestCase
 
     private function context(): array
     {
-        $facility = \App\Models\Facility::factory()->create();
+        $facility = Facility::factory()->create();
         $staff = $this->staffWithRole('storekeeper');
-        $staff->update(['facility_id' => $facility->id]);
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::create(['user_id' => $staff->id, 'department_id' => $department->id]);
         $store = InventoryStore::factory()->create(['facility_id' => $facility->id, 'is_active' => true]);
         $supplier = InventorySupplier::factory()->create(['facility_id' => $facility->id, 'is_active' => true]);
         $itemA = InventoryItem::factory()->create(['facility_id' => $facility->id, 'is_active' => true]);
@@ -213,13 +256,14 @@ class InventoryProcurementServiceTest extends TestCase
         return [$staff, $store, $supplier, $itemA, $itemB];
     }
 
-    private function staffWithRole(string $roleSlug): \App\Models\User
+    private function staffWithRole(string $roleSlug): User
     {
-        $user = \App\Models\User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-        $role = \App\Models\Role::where('slug', $roleSlug)->first();
+        $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
+        $role = Role::where('slug', $roleSlug)->first();
         if ($role) {
             $user->roles()->attach($role);
         }
+
         return $user;
     }
 }
