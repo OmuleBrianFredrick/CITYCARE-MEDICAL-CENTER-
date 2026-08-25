@@ -37,6 +37,18 @@ class AppointmentControllerTest extends TestCase
             ->assertDontSee($context['patient']->medical_record_number);
     }
 
+    public function test_receptionist_can_continue_from_a_patient_record_to_a_preselected_appointment_form(): void
+    {
+        $staff = $this->staffWithRole('receptionist');
+        $context = $this->appointmentContext();
+
+        $this->actingAs($staff)
+            ->get(route('appointments.create', ['patient_id' => $context['patient']->id]))
+            ->assertOk()
+            ->assertSee($context['patient']->medical_record_number)
+            ->assertSee('<option value="'.$context['patient']->id.'" selected>', false);
+    }
+
     public function test_staff_can_schedule_appointment_through_http_workflow(): void
     {
         $staff = $this->staffWithRole('receptionist');

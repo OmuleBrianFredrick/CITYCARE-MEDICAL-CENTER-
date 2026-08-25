@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicalEncounter;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\InventoryItem;
 use App\Models\InventoryStockBalance;
@@ -12,6 +13,7 @@ use App\Models\MedicationFormulation;
 use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +83,9 @@ class PharmacyInventoryDispensingControllerTest extends TestCase
         $facility = Facility::factory()->create();
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $staff->roles()->attach(Role::where('slug', $roleSlug)->valueOrFail('id'));
+
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::query()->create(['user_id' => $staff->id, 'department_id' => $department->id]);
 
         $store = InventoryStore::factory()->create(['facility_id' => $facility->id, 'is_active' => true]);
         $inventoryItem = InventoryItem::factory()->create([

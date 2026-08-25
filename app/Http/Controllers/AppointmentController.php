@@ -41,7 +41,7 @@ class AppointmentController extends Controller
         return view('appointments.index', compact('appointments'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $facility = Facility::query()->where('is_active', true)->orderBy('id')->firstOrFail();
         $departments = Department::query()
@@ -51,11 +51,12 @@ class AppointmentController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-        $selectedPatient = old('patient_id')
+        $selectedPatientId = old('patient_id', $request->input('patient_id'));
+        $selectedPatient = $selectedPatientId
             ? Patient::query()
                 ->where('facility_id', $facility->id)
                 ->where('status', Patient::STATUS_ACTIVE)
-                ->find(old('patient_id'))
+                ->find($selectedPatientId)
             : null;
         $providers = User::query()->where('user_type', 'staff')->where('is_active', true)->orderBy('name')->get();
 

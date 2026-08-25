@@ -60,6 +60,8 @@ class DashboardWorkspaceService
             ['label' => 'Patients', 'route' => 'patients.index', 'active' => 'patients.*', 'permission' => 'patients.view'],
             ['label' => 'Appointments', 'route' => 'appointments.index', 'active' => 'appointments.*', 'permission' => 'appointments.manage'],
             ['label' => 'Clinical care', 'route' => 'encounters.index', 'active' => 'encounters.*', 'permission' => 'clinical.encounters.view'],
+            ['label' => 'Laboratory', 'route' => 'laboratory.index', 'active' => 'laboratory.*', 'permission' => 'laboratory.view'],
+            ['label' => 'Pharmacy', 'route' => 'pharmacy.index', 'active' => 'pharmacy.*', 'permission' => 'pharmacy.view'],
             ['label' => 'Inventory', 'route' => 'inventory.procurement.index', 'active' => 'inventory.procurement.*', 'permission' => 'inventory.view'],
             ['label' => 'Reports', 'route' => 'reports.index', 'active' => 'reports.*', 'permission' => 'reports.view'],
             ['label' => 'Audit log', 'route' => 'audit.index', 'active' => 'audit.*', 'permission' => 'audit.view'],
@@ -120,8 +122,8 @@ class DashboardWorkspaceService
                     ->whereIn('status', [LaboratoryOrder::STATUS_ORDERED, LaboratoryOrder::STATUS_IN_PROGRESS])
                     ->count(),
                 'Orders that still require laboratory processing.',
-                route('encounters.index'),
-                'Open clinical worklist',
+                route('laboratory.index'),
+                'Open laboratory queue',
             );
         }
 
@@ -133,8 +135,8 @@ class DashboardWorkspaceService
                     ->whereIn('status', [Prescription::STATUS_PRESCRIBED, Prescription::STATUS_PARTIALLY_DISPENSED])
                     ->count(),
                 'Prescriptions awaiting complete dispensing.',
-                route('encounters.index'),
-                'Open clinical worklist',
+                route('pharmacy.index'),
+                'Open pharmacy queue',
             );
         }
 

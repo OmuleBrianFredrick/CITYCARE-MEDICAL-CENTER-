@@ -13,10 +13,12 @@ use App\Http\Controllers\ClinicalTreatmentPlanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryProcurementController;
 use App\Http\Controllers\LaboratoryOrderController;
+use App\Http\Controllers\LaboratoryWorkspaceController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientPortalController;
 use App\Http\Controllers\PharmacyController;
+use App\Http\Controllers\PharmacyWorkspaceController;
 use App\Http\Controllers\ReportingController;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +57,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/{appointment}/complete', [AppointmentController::class, 'complete'])->whereNumber('appointment')->name('complete');
         Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancel'])->whereNumber('appointment')->name('cancel');
     });
+
+    Route::get('/laboratory', [LaboratoryWorkspaceController::class, 'index'])
+        ->middleware('permission:laboratory.view')
+        ->name('laboratory.index');
+
+    Route::get('/pharmacy', [PharmacyWorkspaceController::class, 'index'])
+        ->middleware('permission:pharmacy.view')
+        ->name('pharmacy.index');
 
     Route::middleware('permission:clinical.encounters.view')->prefix('encounters')->name('encounters.')->group(function () {
         Route::get('/', [ClinicalEncounterController::class, 'index'])->name('index');
@@ -104,6 +114,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->middleware('permission:pharmacy.dispensing.manage')
             ->whereNumber('prescription')
             ->name('prescriptions.dispense');
+
+        Route::post('/prescriptions/{prescription}/cancel', [PharmacyController::class, 'cancel'])
+            ->middleware('permission:pharmacy.work.manage')
+            ->whereNumber('prescription')
+            ->name('prescriptions.cancel');
     });
 
     Route::prefix('billing')->name('billing.')->group(function () {

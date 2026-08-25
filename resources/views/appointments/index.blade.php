@@ -2,12 +2,17 @@
 
 @section('content')
 <div class="mx-auto max-w-7xl space-y-6 p-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h1 class="text-2xl font-semibold">Appointments</h1>
             <p class="text-sm text-gray-600">Schedule, monitor, check in, complete, and cancel patient appointments.</p>
         </div>
-        <a href="{{ route('appointments.create') }}" class="rounded bg-blue-600 px-4 py-2 text-white">Schedule appointment</a>
+        <div class="flex flex-wrap gap-2">
+            @if (auth()->user()->hasPermissionTo('patients.create'))
+                <a href="{{ route('patients.create') }}" class="rounded border border-gray-300 bg-white px-4 py-2 text-gray-800">Register patient</a>
+            @endif
+            <a href="{{ route('appointments.create') }}" class="rounded bg-blue-600 px-4 py-2 text-white">Schedule appointment</a>
+        </div>
     </div>
 
     @if (session('status'))
@@ -39,7 +44,7 @@
             @forelse ($appointments as $appointment)
                 <tr class="border-b">
                     <td class="p-3 font-medium">{{ $appointment->appointment_number }}</td>
-                    <td class="p-3">{{ $appointment->patient->full_name }}</td>
+                    <td class="p-3"><a class="font-medium text-blue-700 hover:underline" href="{{ route('patients.show', $appointment->patient) }}">{{ $appointment->patient->full_name }}</a><span class="mt-1 block text-xs text-gray-500">{{ $appointment->patient->medical_record_number }}</span></td>
                     <td class="p-3">{{ $appointment->department->name }}</td>
                     <td class="p-3">{{ $appointment->servicePoint->name }}</td>
                     <td class="p-3">{{ $appointment->provider?->name ?? 'Unassigned' }}</td>

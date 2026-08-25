@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicalEncounter;
+use App\Models\Department;
 use App\Models\LaboratoryOrder;
 use App\Models\LaboratoryTest;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\LaboratoryOrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,6 +32,7 @@ class LaboratoryOrderControllerTest extends TestCase
         $this->seed();
         $doctor = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($doctor, $encounter);
         $tests = LaboratoryTest::factory()->count(2)->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
@@ -71,11 +75,12 @@ class LaboratoryOrderControllerTest extends TestCase
         $this->seed();
         $laboratory = $this->userWithRole('laboratory');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($laboratory, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
         ]);
-        $order = app(\App\Services\LaboratoryOrderService::class)->create($encounter, $laboratory, [
+        $order = app(LaboratoryOrderService::class)->create($encounter, $laboratory, [
             'test_ids' => [$test->id],
         ]);
         $item = $order->items()->firstOrFail();
@@ -100,11 +105,12 @@ class LaboratoryOrderControllerTest extends TestCase
         $this->seed();
         $doctor = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($doctor, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
         ]);
-        $order = app(\App\Services\LaboratoryOrderService::class)->create($encounter, $doctor, [
+        $order = app(LaboratoryOrderService::class)->create($encounter, $doctor, [
             'test_ids' => [$test->id],
         ]);
         $item = $order->items()->firstOrFail();
@@ -121,11 +127,12 @@ class LaboratoryOrderControllerTest extends TestCase
         $this->seed();
         $laboratory = $this->userWithRole('laboratory');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($laboratory, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
         ]);
-        $order = app(\App\Services\LaboratoryOrderService::class)->create($encounter, $laboratory, [
+        $order = app(LaboratoryOrderService::class)->create($encounter, $laboratory, [
             'test_ids' => [$test->id],
         ]);
 
@@ -145,17 +152,28 @@ class LaboratoryOrderControllerTest extends TestCase
         $this->seed();
         $doctor = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($doctor, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
         ]);
-        $order = app(\App\Services\LaboratoryOrderService::class)->create($encounter, $doctor, [
+        $order = app(LaboratoryOrderService::class)->create($encounter, $doctor, [
             'test_ids' => [$test->id],
         ]);
 
         $this->actingAs($doctor)
             ->post(route('encounters.laboratory-orders.cancel', $order))
             ->assertForbidden();
+    }
+
+    private function assignToEncounter(User $user, ClinicalEncounter $encounter): void
+    {
+        $department = Department::factory()->create(['facility_id' => $encounter->facility_id]);
+
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            ['department_id' => $department->id]
+        );
     }
 
     private function userWithRole(string $roleSlug): User
