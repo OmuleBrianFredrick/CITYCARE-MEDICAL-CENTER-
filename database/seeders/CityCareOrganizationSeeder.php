@@ -27,6 +27,7 @@ class CityCareOrganizationSeeder extends Seeder
         );
 
         $departments = [
+            ['name' => 'Administration & Executive', 'code' => 'ADMIN', 'sort_order' => 5],
             ['name' => 'Reception & Front Desk', 'code' => 'RECEPTION', 'sort_order' => 10],
             ['name' => 'Outpatient Department', 'code' => 'OPD', 'sort_order' => 20],
             ['name' => 'Nursing & Triage', 'code' => 'NURSING', 'sort_order' => 30],
@@ -48,6 +49,7 @@ class CityCareOrganizationSeeder extends Seeder
             );
 
             $servicePoint = match ($definition['code']) {
+                'ADMIN' => ['name' => 'Administration Office', 'code' => 'ADMIN-MAIN', 'type' => 'administration'],
                 'RECEPTION' => ['name' => 'Main Reception', 'code' => 'RECEPTION-MAIN', 'type' => 'reception'],
                 'OPD' => ['name' => 'General Consultation', 'code' => 'OPD-GENERAL', 'type' => 'clinic'],
                 'NURSING' => ['name' => 'Triage', 'code' => 'NURSING-TRIAGE', 'type' => 'triage'],

@@ -264,13 +264,13 @@ php artisan migrate
 php artisan db:seed
 ```
 
-For safe local role/UI testing, set a local `CITYCARE_TEST_PASSWORD` (at least 12 characters) and seed the dedicated `.test` accounts:
+For safe local role/UI testing, set a local `CITYCARE_TEST_PASSWORD` (at least 12 characters) and seed the complete idempotent `.test` demo environment:
 
 ```bash
-php artisan db:seed --class=UiTestAccountsSeeder
+php artisan db:seed --class=CityCareDemoDataSeeder
 ```
 
-See [`docs/UI_TEST_ACCOUNTS.md`](docs/UI_TEST_ACCOUNTS.md) for the local-only account list. Do not place real credentials in `.env.example` or source control.
+Each role receives a distinct password derived from the local base value. See [`docs/UI_TEST_ACCOUNTS.md`](docs/UI_TEST_ACCOUNTS.md) for the account list and [`docs/DEMO_WORKFLOW.md`](docs/DEMO_WORKFLOW.md) for the cross-role scenarios. Do not place real credentials in `.env.example` or source control.
 
 8. Create the public storage link:
 
