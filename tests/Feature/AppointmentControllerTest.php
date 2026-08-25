@@ -28,10 +28,13 @@ class AppointmentControllerTest extends TestCase
     public function test_authorized_staff_can_view_appointment_workspace_and_form(): void
     {
         $staff = $this->staffWithRole('receptionist');
-        $this->appointmentContext();
+        $context = $this->appointmentContext();
 
         $this->actingAs($staff)->get(route('appointments.index'))->assertOk();
-        $this->actingAs($staff)->get(route('appointments.create'))->assertOk();
+        $this->actingAs($staff)->get(route('appointments.create'))
+            ->assertOk()
+            ->assertSee('Search patient by name, MRN, phone, or national ID')
+            ->assertDontSee($context['patient']->medical_record_number);
     }
 
     public function test_staff_can_schedule_appointment_through_http_workflow(): void
@@ -55,6 +58,29 @@ class AppointmentControllerTest extends TestCase
         $this->assertSame(Appointment::STATUS_SCHEDULED, $appointment->status);
         $this->assertSame($staff->id, $appointment->created_by);
         $this->assertStringStartsWith('APT-', $appointment->appointment_number);
+    }
+
+    public function test_staff_cannot_schedule_an_appointment_for_a_patient_from_another_facility(): void
+    {
+        $staff = $this->staffWithRole('receptionist');
+        $context = $this->appointmentContext();
+        $otherFacility = Facility::factory()->create();
+        $otherPatient = Patient::factory()->create(['facility_id' => $otherFacility->id]);
+
+        $this->actingAs($staff)
+            ->from(route('appointments.create'))
+            ->post(route('appointments.store'), [
+                'facility_id' => $context['facility']->id,
+                'department_id' => $context['department']->id,
+                'service_point_id' => $context['servicePoint']->id,
+                'patient_id' => $otherPatient->id,
+                'scheduled_start' => now()->addDay()->setTime(9, 0)->format('Y-m-d H:i'),
+                'scheduled_end' => now()->addDay()->setTime(9, 30)->format('Y-m-d H:i'),
+            ])
+            ->assertRedirect(route('appointments.create'))
+            ->assertSessionHasErrors('patient_id');
+
+        $this->assertDatabaseMissing('appointments', ['patient_id' => $otherPatient->id]);
     }
 
     public function test_appointment_lifecycle_can_check_in_complete_and_cancel(): void

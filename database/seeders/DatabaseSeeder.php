@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -19,7 +20,7 @@ class DatabaseSeeder extends Seeder
         $email = env('CITYCARE_ADMIN_EMAIL');
         $password = env('CITYCARE_ADMIN_PASSWORD');
 
-        if ($email === null && $password === null) {
+        if (blank($email) && blank($password)) {
             return;
         }
 
@@ -41,7 +42,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $role = \App\Models\Role::query()->where('slug', 'super-admin')->firstOrFail();
+        $role = Role::query()->where('slug', 'super-admin')->firstOrFail();
         $admin->roles()->syncWithoutDetaching([$role->id]);
     }
 }

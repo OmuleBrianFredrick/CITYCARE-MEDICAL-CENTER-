@@ -16,9 +16,7 @@ use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
-    public function __construct(private readonly AppointmentService $appointments)
-    {
-    }
+    public function __construct(private readonly AppointmentService $appointments) {}
 
     public function index(Request $request): View
     {
@@ -53,10 +51,15 @@ class AppointmentController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-        $patients = Patient::query()->where('facility_id', $facility->id)->where('status', Patient::STATUS_ACTIVE)->orderBy('first_name')->orderBy('last_name')->get();
+        $selectedPatient = old('patient_id')
+            ? Patient::query()
+                ->where('facility_id', $facility->id)
+                ->where('status', Patient::STATUS_ACTIVE)
+                ->find(old('patient_id'))
+            : null;
         $providers = User::query()->where('user_type', 'staff')->where('is_active', true)->orderBy('name')->get();
 
-        return view('appointments.create', compact('facility', 'departments', 'patients', 'providers'));
+        return view('appointments.create', compact('facility', 'departments', 'providers', 'selectedPatient'));
     }
 
     public function store(StoreAppointmentRequest $request): RedirectResponse

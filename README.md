@@ -164,11 +164,11 @@ Operational lists support search and filtering where the underlying workflow req
 
 Reporting functionality includes report execution, run tracking and CSV export. Reports are constrained by operational scope so sensitive information is not treated as globally visible data.
 
-## 9. API / AJAX Requirement Review
+## 9. API / AJAX Enhancement
 
-The academic brief requires at least one JSON API or AJAX-based enhancement, such as dynamic appointment-slot loading, instant patient search, or doctor availability checking. A repository review did not identify a dedicated `/api` route or an obvious AJAX/JSON workflow in `routes/web.php`.
+The appointment workflow includes an authenticated JSON patient-search enhancement at `GET /patients/search`. It is protected by the existing `patients.view` permission, validates the query, limits results to active patients in the active facility, and returns structured `data` and `meta` fields.
 
-This requirement is therefore **not claimed as completed in this documentation**. It should be confirmed during browser/UI testing against any existing JavaScript interactions, or implemented explicitly if the final submission requires a demonstrable API/AJAX feature.
+The appointment form uses this endpoint after the user enters at least two characters, then presents the matching patient records in the actual appointment `patient_id` selector. This keeps the feature connected to a real browser workflow rather than exposing a standalone demonstration endpoint. Automated feature tests cover successful search, inactive-record exclusion, permission denial, and invalid input. Browser acceptance testing remains required before release.
 
 ## 10. UI and UX Direction
 
@@ -181,7 +181,7 @@ The interface follows a consistent medical-centre visual direction using:
 - Tables, cards, forms and status indicators
 - Separate internal and patient-facing workflow concepts
 
-The application includes a responsive login and authenticated dashboard foundation together with operational workspaces for the implemented modules.
+The application includes a responsive login, a shared permission-aware workspace shell, and a data-backed command-center dashboard alongside the operational workspaces for the implemented modules.
 
 The next validation stage is local browser and user-journey testing on the actual interface.
 
@@ -210,16 +210,16 @@ Reliability work included:
 
 Automated testing is layered across unit, feature, database-integrity, authorization, lifecycle and transactional behaviour.
 
-The final Phase 14 regression was executed on `main` after the hardening branches were merged.
+The historical main-branch hardening baseline was 252 passing tests and 953 assertions. The current production-development increment was validated locally after adding the command-center workspace, AJAX patient search, and CI configuration.
 
-**Final result:**
+**Latest local result:**
 
-- **252 tests passed**
-- **953 assertions**
+- **258 tests passed**
+- **989 assertions**
 - **0 failures**
 - **0 errors**
 
-The application was also checked after cache clearing and migration verification. No pending migrations remained at the final verification point.
+The repository also has a GitHub Actions workflow that installs dependencies, builds frontend assets, and runs the PHP suite on pushes and pull requests. It will provide its first hosted verification after this work is committed and pushed.
 
 Automated tests establish the current regression baseline, but they do not replace browser-based usability and visual testing.
 
@@ -229,7 +229,7 @@ The examination brief for **BCS 3303 Advanced Application Development & Database
 
 The repository demonstrates substantial coverage of these areas, including the application foundation, Blade-based interface, patient and appointment workflows, clinical operations, billing, pharmacy, laboratory, inventory, reporting, authentication, permissions, database relationships and project documentation.
 
-The **API/AJAX requirement remains the principal item that should not be represented as completed without additional evidence**. This README deliberately records that limitation instead of overstating compliance.
+The API/AJAX requirement is implemented through the protected appointment patient-search workflow described above. Final browser acceptance remains the evidence required before it is represented as release-ready.
 
 The examination brief also requires project documentation including setup steps, major features and screenshots or a brief description of system modules. This README supplies setup guidance and module descriptions. Screenshots can be added after the browser-testing stage if required for the final academic submission package.
 
@@ -242,40 +242,55 @@ The examination brief also requires project documentation including setup steps,
 composer install
 ```
 
-3. Create `.env` from `.env.example` and configure local database credentials.
-4. Generate the application key:
+3. Install and build frontend assets:
+
+```bash
+npm ci
+npm run build
+```
+
+4. Create `.env` from `.env.example` and configure local database credentials. The example intentionally leaves `CITYCARE_ADMIN_EMAIL`, `CITYCARE_ADMIN_PASSWORD`, and `CITYCARE_TEST_PASSWORD` blank. Add only local, non-production values to your untracked `.env` when you need either optional seeder.
+5. Generate the application key:
 
 ```bash
 php artisan key:generate
 ```
 
-5. Create the MySQL database `citycare_medical_center`.
-6. Run migrations and seed data as appropriate:
+6. Create the MySQL database `citycare_medical_center`.
+7. Run migrations and seed data as appropriate:
 
 ```bash
 php artisan migrate
 php artisan db:seed
 ```
 
-7. Create the public storage link:
+For safe local role/UI testing, set a local `CITYCARE_TEST_PASSWORD` (at least 12 characters) and seed the dedicated `.test` accounts:
+
+```bash
+php artisan db:seed --class=UiTestAccountsSeeder
+```
+
+See [`docs/UI_TEST_ACCOUNTS.md`](docs/UI_TEST_ACCOUNTS.md) for the local-only account list. Do not place real credentials in `.env.example` or source control.
+
+8. Create the public storage link:
 
 ```bash
 php artisan storage:link
 ```
 
-8. Clear application caches when required:
+9. Clear application caches when required:
 
 ```bash
 php artisan optimize:clear
 ```
 
-9. Run automated tests:
+10. Run automated tests:
 
 ```bash
 php artisan test
 ```
 
-10. Start the local application:
+11. Start the local application:
 
 ```bash
 php artisan serve
@@ -292,6 +307,6 @@ php artisan serve
 
 ## 16. Project Status
 
-**Current status: implementation and automated hardening completed; browser/UI testing is the next validation stage.**
+**Current status: the core backend foundation is in place, the dashboard is now permission-aware and data-backed, and the appointment patient-search API/AJAX enhancement is implemented.**
 
-The `main` branch contains the merged implementation and has passed the final automated regression baseline described above.
+Role-workspace completion and browser/user-journey acceptance remain the next validation stages. GitHub Actions verifies dependency installation, frontend builds, and the PHP test suite on pushes and pull requests.

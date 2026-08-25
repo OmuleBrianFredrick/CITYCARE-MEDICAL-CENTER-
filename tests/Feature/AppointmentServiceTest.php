@@ -51,6 +51,22 @@ class AppointmentServiceTest extends TestCase
         ]);
     }
 
+    public function test_patient_from_another_facility_cannot_be_scheduled(): void
+    {
+        [$facility, $department, $servicePoint] = $this->structure();
+        $otherPatient = Patient::factory()->create(['facility_id' => Facility::factory()->create()->id]);
+
+        $this->expectException(ValidationException::class);
+        app(AppointmentService::class)->create([
+            'facility_id' => $facility->id,
+            'department_id' => $department->id,
+            'service_point_id' => $servicePoint->id,
+            'patient_id' => $otherPatient->id,
+            'scheduled_start' => Carbon::tomorrow()->setTime(9, 0),
+            'scheduled_end' => Carbon::tomorrow()->setTime(9, 30),
+        ]);
+    }
+
     public function test_overlapping_service_point_appointment_is_rejected(): void
     {
         [$facility, $department, $servicePoint] = $this->structure();
@@ -69,7 +85,8 @@ class AppointmentServiceTest extends TestCase
     {
         [$facility, $department, $servicePoint] = $this->structure();
         $patient = Patient::factory()->create(['facility_id' => $facility->id, 'status' => Patient::STATUS_ACTIVE]);
-        $start = Carbon::tomorrow()->setTime(11, 0); $end = Carbon::tomorrow()->setTime(11, 30);
+        $start = Carbon::tomorrow()->setTime(11, 0);
+        $end = Carbon::tomorrow()->setTime(11, 30);
         Appointment::create(['facility_id' => $facility->id, 'department_id' => $department->id, 'service_point_id' => $servicePoint->id, 'patient_id' => $patient->id, 'appointment_number' => 'APT-CANCELLED', 'scheduled_start' => $start, 'scheduled_end' => $end, 'status' => Appointment::STATUS_CANCELLED]);
 
         $appointment = app(AppointmentService::class)->create(['facility_id' => $facility->id, 'department_id' => $department->id, 'service_point_id' => $servicePoint->id, 'patient_id' => $patient->id, 'scheduled_start' => $start, 'scheduled_end' => $end]);
@@ -81,6 +98,7 @@ class AppointmentServiceTest extends TestCase
         $facility = Facility::factory()->create();
         $department = Department::factory()->create(['facility_id' => $facility->id]);
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
+
         return [$facility, $department, $servicePoint];
     }
 }

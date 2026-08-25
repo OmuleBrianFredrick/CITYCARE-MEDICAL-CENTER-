@@ -18,12 +18,14 @@
         <input type="hidden" name="facility_id" value="{{ $facility->id }}">
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Patient</label>
-            <select name="patient_id" required class="w-full rounded border px-3 py-2">
+            <label for="patient-search" class="mb-1 block text-sm font-medium">Patient</label>
+            <input id="patient-search" type="search" autocomplete="off" placeholder="Search patient by name, MRN, phone, or national ID" class="mb-2 w-full rounded border px-3 py-2" aria-describedby="patient-search-status">
+            <p id="patient-search-status" class="mb-2 text-sm text-gray-600" aria-live="polite">Type at least two characters to search the full patient registry.</p>
+            <select id="patient_id" name="patient_id" required aria-label="Selected patient" class="w-full rounded border px-3 py-2">
                 <option value="">Select patient</option>
-                @foreach ($patients as $patient)
-                    <option value="{{ $patient->id }}" @selected(old('patient_id') == $patient->id)>{{ $patient->full_name }} — {{ $patient->medical_record_number }}</option>
-                @endforeach
+                @if ($selectedPatient)
+                    <option value="{{ $selectedPatient->id }}" selected>{{ $selectedPatient->full_name }} — {{ $selectedPatient->medical_record_number }}</option>
+                @endif
             </select>
         </div>
 
@@ -88,3 +90,60 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    (() => {
+        const input = document.getElementById('patient-search');
+        const select = document.getElementById('patient_id');
+        const status = document.getElementById('patient-search-status');
+        const endpoint = @json(route('patients.search'));
+        let delay;
+        let activeRequest;
+
+        input.addEventListener('input', () => {
+            const query = input.value.trim();
+            window.clearTimeout(delay);
+
+            if (query.length < 2) {
+                status.textContent = 'Type at least two characters to search the full patient registry.';
+                return;
+            }
+
+            delay = window.setTimeout(async () => {
+                activeRequest?.abort();
+                activeRequest = new AbortController();
+                status.textContent = 'Searching patients…';
+
+                try {
+                    const response = await fetch(`${endpoint}?q=${encodeURIComponent(query)}`, {
+                        headers: {'Accept': 'application/json'},
+                        signal: activeRequest.signal,
+                    });
+                    const payload = await response.json();
+
+                    if (! response.ok) {
+                        throw new Error(payload.message ?? 'The patient search could not be completed.');
+                    }
+
+                    const selectedId = select.value;
+                    select.replaceChildren(new Option('Select patient', ''));
+
+                    payload.data.forEach((patient) => {
+                        const detail = patient.phone ? ` · ${patient.phone}` : '';
+                        select.add(new Option(`${patient.full_name} — ${patient.medical_record_number}${detail}`, patient.id, false, patient.id === selectedId));
+                    });
+
+                    status.textContent = payload.data.length
+                        ? `${payload.data.length} matching ${payload.data.length === 1 ? 'patient' : 'patients'} found. Select one to schedule the appointment.`
+                        : 'No active patients match that search.';
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        status.textContent = error.message;
+                    }
+                }
+            }, 250);
+        });
+    })();
+</script>
+@endpush

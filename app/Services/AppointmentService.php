@@ -25,6 +25,9 @@ class AppointmentService
 
         return DB::transaction(function () use ($data, $start, $end) {
             $patient = Patient::query()->lockForUpdate()->findOrFail($data['patient_id']);
+            if ((int) $patient->facility_id !== (int) $data['facility_id']) {
+                throw ValidationException::withMessages(['patient_id' => 'The selected patient does not belong to this facility.']);
+            }
             if (! $patient->isActive()) {
                 throw ValidationException::withMessages(['patient_id' => 'Only active patients can be scheduled.']);
             }
@@ -46,6 +49,7 @@ class AppointmentService
                 throw ValidationException::withMessages(['appointment' => 'Only scheduled appointments can be checked in.']);
             }
             $appointment->update(['status' => Appointment::STATUS_CHECKED_IN, 'checked_in_at' => now()]);
+
             return $appointment->refresh();
         }, 3);
     }
@@ -58,6 +62,7 @@ class AppointmentService
                 throw ValidationException::withMessages(['appointment' => 'Only checked-in appointments can be completed.']);
             }
             $appointment->update(['status' => Appointment::STATUS_COMPLETED, 'completed_at' => now()]);
+
             return $appointment->refresh();
         }, 3);
     }
@@ -70,6 +75,7 @@ class AppointmentService
                 throw ValidationException::withMessages(['appointment' => 'Only scheduled appointments can be cancelled.']);
             }
             $appointment->update(['status' => Appointment::STATUS_CANCELLED, 'cancelled_at' => now()]);
+
             return $appointment->refresh();
         }, 3);
     }

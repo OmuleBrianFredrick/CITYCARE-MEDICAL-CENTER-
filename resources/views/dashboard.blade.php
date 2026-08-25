@@ -1,54 +1,62 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard · CityCare Medical Center</title>
-    <style>
-        :root { --navy:#082f49; --blue:#0369a1; --sky:#e0f2fe; --cream:#f8faf7; --ink:#102a43; --muted:#627d98; --line:#d9e2ec; }
-        * { box-sizing:border-box; }
-        body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); background:var(--cream); }
-        .shell { min-height:100vh; display:grid; grid-template-columns:250px 1fr; }
-        aside { padding:28px 20px; color:#fff; background:linear-gradient(180deg,var(--navy),#0c4a6e); }
-        .brand { display:flex; align-items:center; gap:12px; margin-bottom:44px; }
-        .mark { width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:#fff; color:var(--navy); font-weight:900; }
-        .brand strong { display:block; } .brand small { color:#bae6fd; }
-        nav { display:grid; gap:8px; } nav a { padding:11px 12px; color:#e0f2fe; text-decoration:none; border-radius:10px; } nav a.active, nav a:hover { background:rgba(255,255,255,.10); color:#fff; }
-        .side-note { margin-top:40px; padding:14px; border:1px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.06); font-size:.82rem; line-height:1.5; }
-        main { padding:34px clamp(22px,4vw,56px); }
-        header { display:flex; justify-content:space-between; gap:20px; align-items:center; margin-bottom:34px; }
-        .eyebrow { color:var(--blue); font-size:.74rem; font-weight:850; letter-spacing:.14em; } h1 { margin:6px 0 8px; font-size:clamp(2rem,4vw,3.2rem); letter-spacing:-.05em; } .muted { color:var(--muted); }
-        .user { display:flex; align-items:center; gap:12px; } .pill { padding:7px 10px; border-radius:999px; background:var(--sky); color:var(--blue); font-size:.76rem; font-weight:800; }
-        .logout { padding:10px 13px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); font-weight:750; cursor:pointer; }
-        .cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-bottom:22px; }
-        .card { padding:22px; background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 8px 28px rgba(16,42,67,.05); } .card span { color:var(--muted); font-size:.82rem; } .card strong { display:block; margin-top:10px; font-size:1.35rem; }
-        .hero { padding:28px; border-radius:20px; color:#fff; background:linear-gradient(135deg,var(--blue),var(--navy)); position:relative; overflow:hidden; } .hero::after { content:""; position:absolute; width:180px;height:180px;right:-60px;top:-60px;border-radius:50%;border:35px solid rgba(244,197,66,.18); }
-        .hero h2 { margin:0 0 8px; font-size:1.65rem; } .hero p { max-width:700px; color:#d9f1fb; line-height:1.6; }
-        @media(max-width:850px){ .shell{grid-template-columns:1fr} aside{display:none}.cards{grid-template-columns:1fr} header{align-items:flex-start;flex-direction:column}.user{width:100%;justify-content:space-between} }
-    </style>
-</head>
-<body>
-<div class="shell">
-    <aside>
-        <div class="brand"><div class="mark">CC</div><div><strong>CityCare</strong><small>Medical Center</small></div></div>
-        <nav><a class="active" href="{{ route('dashboard') }}">Dashboard</a></nav>
-        <div class="side-note"><strong>Secure workspace</strong><br>Access to clinical and operational modules is controlled by your assigned permissions.</div>
-    </aside>
-    <main>
-        <header>
-            <div><div class="eyebrow">CITYCARE MEDICAL CENTER</div><h1>Good to see you, {{ auth()->user()->name }}.</h1><div class="muted">Your workspace is ready. Modules will appear here as they are enabled for your role.</div></div>
-            <div class="user"><span class="pill">{{ ucfirst(str_replace('-', ' ', auth()->user()->user_type)) }}</span><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout" type="submit">Sign out</button></form></div>
-        </header>
-        <section class="cards">
-            <div class="card"><span>Account status</span><strong>{{ auth()->user()->isActive() ? 'Active' : 'Inactive' }}</strong></div>
-            <div class="card"><span>Access roles</span><strong>{{ auth()->user()->roles()->count() }}</strong></div>
-            <div class="card"><span>Last sign-in</span><strong>{{ auth()->user()->last_login_at?->diffForHumans() ?? 'First sign-in' }}</strong></div>
+@extends('layouts.app')
+
+@section('title', 'Dashboard · CityCare Medical Center')
+
+@push('styles')
+<style>
+    .dashboard{padding:clamp(24px,4vw,48px)}.dashboard-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:30px}.dashboard-eyebrow{margin:0 0 7px;color:var(--blue);font-size:.72rem;font-weight:850;letter-spacing:.14em}.dashboard-heading h1{margin:0;font-size:clamp(1.85rem,4vw,3rem);letter-spacing:-.045em}.dashboard-heading p{max-width:720px;margin:10px 0 0;color:var(--muted);line-height:1.6}.dashboard-date{padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--muted);font-size:.83rem;white-space:nowrap}.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}.metric-card{display:flex;min-height:184px;flex-direction:column;padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 8px 24px rgba(16,42,67,.045)}.metric-label{color:var(--muted);font-size:.8rem;font-weight:750}.metric-value{display:block;margin:10px 0 7px;font-size:1.7rem;line-height:1.15;letter-spacing:-.035em}.metric-description{margin:0;color:var(--muted);font-size:.82rem;line-height:1.45}.metric-link{margin-top:auto;padding-top:16px;font-size:.82rem;font-weight:800;text-decoration:none}.dashboard-columns{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:20px}.dashboard-panel{padding:24px}.dashboard-panel h2{margin:0;font-size:1.1rem}.dashboard-panel>p{margin:7px 0 18px;color:var(--muted);font-size:.88rem;line-height:1.5}.action-list{display:grid;gap:10px}.action-card{display:block;padding:15px;border:1px solid var(--line);border-radius:12px;color:var(--ink);text-decoration:none;transition:border-color .15s,transform .15s}.action-card:hover{border-color:#93c5fd;transform:translateY(-1px)}.action-card strong{display:block;color:var(--blue);font-size:.9rem}.action-card span{display:block;margin-top:4px;color:var(--muted);font-size:.82rem;line-height:1.45}.readiness-list{display:grid;gap:11px;margin:0;padding:0;list-style:none}.readiness-list li{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:.86rem;line-height:1.5}.readiness-list b{display:inline-grid;place-items:center;width:20px;height:20px;flex:0 0 20px;border-radius:999px;background:#dcfce7;color:var(--green);font-size:.72rem}@media(max-width:760px){.dashboard{padding:24px 18px}.dashboard-heading{flex-direction:column;gap:12px}.dashboard-columns{grid-template-columns:1fr}.dashboard-date{display:none}}
+</style>
+@endpush
+
+@section('content')
+<section class="dashboard">
+    <div class="dashboard-heading">
+        <div>
+            <p class="dashboard-eyebrow">CITYCARE COMMAND CENTER</p>
+            <h1>Welcome back, {{ auth()->user()->name }}.</h1>
+            <p>Your workspace surfaces the live operational data and actions that your assigned permissions allow.</p>
+        </div>
+        <div class="dashboard-date">{{ now()->format('l, d M Y') }}</div>
+    </div>
+
+    @if(session('status'))<div class="status" style="margin-bottom:18px">{{ session('status') }}</div>@endif
+    @if($errors->any())<div class="error" style="margin-bottom:18px">{{ $errors->first() }}</div>@endif
+
+    <div class="metric-grid">
+        @forelse($metrics as $metric)
+            <article class="metric-card">
+                <span class="metric-label">{{ $metric['label'] }}</span>
+                <strong class="metric-value">{{ $metric['value'] }}</strong>
+                <p class="metric-description">{{ $metric['description'] }}</p>
+                <a class="metric-link" href="{{ $metric['url'] }}">{{ $metric['linkLabel'] }} →</a>
+            </article>
+        @empty
+            <article class="metric-card"><span class="metric-label">Workspace ready</span><strong class="metric-value">No data yet</strong><p class="metric-description">Your account has no data-enabled modules in the current facility context.</p></article>
+        @endforelse
+    </div>
+
+    <div class="dashboard-columns">
+        <section class="card dashboard-panel">
+            <h2>Start a workflow</h2>
+            <p>Each shortcut opens an implemented, server-authorized CityCare workflow.</p>
+            <div class="action-list">
+                @forelse($quickActions as $action)
+                    <a class="action-card" href="{{ $action['url'] }}"><strong>{{ $action['label'] }} →</strong><span>{{ $action['description'] }}</span></a>
+                @empty
+                    <p style="margin:0;color:var(--muted)">No create actions are assigned to this account. Use the navigation to access your permitted records.</p>
+                @endforelse
+            </div>
         </section>
-        <section class="hero">
-            <h2>CityCare workspace foundation</h2>
-            <p>Authentication, account status, role resolution, permission enforcement, and secure session handling are now established. Clinical and operational modules will be connected to this workspace in their respective development phases.</p>
-        </section>
-    </main>
-</div>
-</body>
-</html>
+
+        <aside class="card dashboard-panel">
+            <h2>Workspace safeguards</h2>
+            <p>CityCare keeps presentation and access control connected to its existing backend safeguards.</p>
+            <ul class="readiness-list">
+                <li><b>✓</b><span>Navigation is filtered by the same permissions that protect the server routes.</span></li>
+                <li><b>✓</b><span>Dashboard values are computed from live facility records, not placeholder metrics.</span></li>
+                <li><b>✓</b><span>Actions lead only to existing routes and workflows.</span></li>
+            </ul>
+        </aside>
+    </div>
+</section>
+@endsection

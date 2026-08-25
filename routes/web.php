@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ClinicalCareController;
 use App\Http\Controllers\ClinicalDiagnosisController;
@@ -10,6 +10,7 @@ use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalReferralAttachmentController;
 use App\Http\Controllers\ClinicalReferralController;
 use App\Http\Controllers\ClinicalTreatmentPlanController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryProcurementController;
 use App\Http\Controllers\LaboratoryOrderController;
 use App\Http\Controllers\OrganizationController;
@@ -27,11 +28,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'active'])->group(function () {
-    Route::get('/dashboard', function () { return view('dashboard'); })->middleware('permission:dashboard.view')->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view')->name('dashboard');
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
 
     Route::middleware('permission:patients.view')->group(function () {
         Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
+        Route::get('/patients/search', [PatientController::class, 'search'])->name('patients.search');
         Route::get('/patients/{patient}', [PatientController::class, 'show'])->whereNumber('patient')->name('patients.show');
         Route::get('/patients/{patient}/portal', [PatientPortalController::class, 'show'])->whereNumber('patient')->middleware('permission:patients.update')->name('patients.portal.show');
     });
