@@ -9,7 +9,9 @@ use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePoint;
+use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\ClinicalEncounterService;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -68,10 +70,12 @@ class ClinicalEncounterControllerTest extends TestCase
         $clinician = $this->staffWithRole('doctor');
         $appointment = $this->checkedInAppointment($clinician);
 
-        $this->actingAs($clinician)->post(route('encounters.store'), [
+        $openResponse = $this->actingAs($clinician)->post(route('encounters.store'), [
             'appointment_id' => $appointment->id,
             'type' => ClinicalEncounter::TYPE_OUTPATIENT,
         ]);
+        $openResponse->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertMatchesRegularExpression('~/encounters/\d+$~', (string) $openResponse->headers->get('Location'));
         $encounter = ClinicalEncounter::firstOrFail();
 
         $this->actingAs($clinician)
@@ -108,7 +112,7 @@ class ClinicalEncounterControllerTest extends TestCase
         $clinician = $this->staffWithRole('doctor');
         $appointment = $this->checkedInAppointment($clinician, 'Searchable');
 
-        $encounter = app(\App\Services\ClinicalEncounterService::class)->open($appointment, $clinician);
+        $encounter = app(ClinicalEncounterService::class)->open($appointment, $clinician);
 
         $this->actingAs($clinician)
             ->get(route('encounters.index', ['status' => ClinicalEncounter::STATUS_OPEN, 'search' => $encounter->encounter_number]))
@@ -120,7 +124,7 @@ class ClinicalEncounterControllerTest extends TestCase
     {
         $clinician = $this->staffWithRole('doctor');
         $appointment = $this->checkedInAppointment($clinician);
-        $encounter = app(\App\Services\ClinicalEncounterService::class)->open($appointment, $clinician);
+        $encounter = app(ClinicalEncounterService::class)->open($appointment, $clinician);
 
         $this->actingAs($clinician)
             ->get(route('encounters.show', $encounter))
@@ -131,10 +135,11 @@ class ClinicalEncounterControllerTest extends TestCase
     {
         $facility = Facility::factory()->create();
         $department = Department::factory()->create(['facility_id' => $facility->id]);
-        \App\Models\StaffProfile::query()->updateOrCreate(
+        StaffProfile::query()->updateOrCreate(
             ['user_id' => $clinician->id],
             ['department_id' => $department->id]
         );
+        $clinician->unsetRelation('staffProfile');
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
         $patient = Patient::factory()->create([
             'facility_id' => $facility->id,

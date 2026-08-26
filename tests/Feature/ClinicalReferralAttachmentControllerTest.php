@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\ClinicalReferral;
 use App\Models\ClinicalReferralAttachment;
+use App\Models\Department;
+use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -20,8 +23,9 @@ class ClinicalReferralAttachmentControllerTest extends TestCase
         $this->seed();
 
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-        $staff->roles()->sync([\App\Models\Role::where('slug', 'doctor')->firstOrFail()->id]);
+        $staff->roles()->sync([Role::where('slug', 'doctor')->firstOrFail()->id]);
         $referral = ClinicalReferral::factory()->create();
+        $this->assignToReferralFacility($staff, $referral);
 
         $response = $this->actingAs($staff)->from('/encounters/'.$referral->encounter_id)->withSession(['_token' => 'test-token'])->post(route('encounters.referrals.attachments.store', $referral), [
             '_token' => 'test-token',
@@ -58,9 +62,13 @@ class ClinicalReferralAttachmentControllerTest extends TestCase
         $this->seed();
 
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-        $staff->roles()->sync([\App\Models\Role::where('slug', 'doctor')->firstOrFail()->id]);
+        $staff->roles()->sync([Role::where('slug', 'doctor')->firstOrFail()->id]);
         $referral = ClinicalReferral::factory()->create();
-        $attachment = ClinicalReferralAttachment::factory()->create(['uploaded_by' => $staff->id]);
+        $this->assignToReferralFacility($staff, $referral);
+        $attachment = ClinicalReferralAttachment::factory()->create([
+            'clinical_referral_id' => $referral->id,
+            'uploaded_by' => $staff->id,
+        ]);
 
         $response = $this->actingAs($staff)->from('/encounters/'.$referral->encounter_id)->withSession(['_token' => 'test-token'])->delete(route('encounters.referrals.attachments.destroy', $attachment), [
             '_token' => 'test-token',
@@ -68,5 +76,20 @@ class ClinicalReferralAttachmentControllerTest extends TestCase
 
         $response->assertRedirect();
         $this->assertDatabaseMissing('clinical_referral_attachments', ['id' => $attachment->id]);
+    }
+
+    private function assignToReferralFacility(User $staff, ClinicalReferral $referral): void
+    {
+        $referral->loadMissing('encounter');
+        $department = Department::factory()->create([
+            'facility_id' => $referral->encounter->facility_id,
+        ]);
+        StaffProfile::create([
+            'user_id' => $staff->id,
+            'department_id' => $department->id,
+            'employee_number' => 'REFERRAL-'.$staff->id,
+            'employment_status' => 'active',
+        ]);
+        $staff->unsetRelation('staffProfile');
     }
 }
