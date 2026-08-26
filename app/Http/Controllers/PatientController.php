@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePatientRequest;
-use App\Models\Facility;
 use App\Models\Patient;
 use App\Services\FacilityAccessService;
 use App\Services\PatientService;
@@ -21,7 +20,7 @@ class PatientController extends Controller
 
     public function index(Request $request): View
     {
-        $facility = Facility::query()->where('is_active', true)->orderBy('id')->firstOrFail();
+        $facility = $this->facilityAccess->currentFacility($request->user());
         $patients = $this->patients->findForSearch($facility->id, $request->string('search')->toString())
             ->paginate(15)
             ->withQueryString();
@@ -29,10 +28,10 @@ class PatientController extends Controller
         return view('patients.index', compact('facility', 'patients'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('patients.create', [
-            'facility' => Facility::query()->where('is_active', true)->orderBy('id')->firstOrFail(),
+            'facility' => $this->facilityAccess->currentFacility($request->user()),
         ]);
     }
 
@@ -42,7 +41,7 @@ class PatientController extends Controller
             'q' => ['required', 'string', 'min:2', 'max:100'],
         ]);
 
-        $facility = Facility::query()->where('is_active', true)->orderBy('id')->firstOrFail();
+        $facility = $this->facilityAccess->currentFacility($request->user());
         $patients = $this->patients
             ->findForSearch($facility->id, $validated['q'])
             ->where('status', Patient::STATUS_ACTIVE)
@@ -67,7 +66,9 @@ class PatientController extends Controller
 
     public function store(StorePatientRequest $request): RedirectResponse
     {
-        $patient = $this->patients->create($request->validated());
+        $data = $request->validated();
+        $this->facilityAccess->assertFacilityAccessible($request->user(), (int) $data['facility_id']);
+        $patient = $this->patients->create($data);
 
         return redirect()->route('patients.show', $patient)->with('status', 'Patient registered successfully.');
     }

@@ -8,6 +8,7 @@ use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePoint;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -163,6 +164,61 @@ class AppointmentControllerTest extends TestCase
             ->assertOk()->assertSee($appointment->appointment_number);
     }
 
+    public function test_appointment_workspace_and_lifecycle_actions_are_facility_scoped(): void
+    {
+        $staff = $this->staffWithRole('receptionist');
+        $otherFacility = Facility::factory()->create(['is_active' => true]);
+        $otherDepartment = Department::factory()->create(['facility_id' => $otherFacility->id]);
+        $otherServicePoint = ServicePoint::factory()->create(['department_id' => $otherDepartment->id]);
+        $otherPatient = Patient::factory()->create(['facility_id' => $otherFacility->id]);
+        $scheduled = Appointment::factory()->create([
+            'facility_id' => $otherFacility->id,
+            'department_id' => $otherDepartment->id,
+            'service_point_id' => $otherServicePoint->id,
+            'patient_id' => $otherPatient->id,
+            'appointment_number' => 'APT-HIDDEN-FACILITY',
+            'status' => Appointment::STATUS_SCHEDULED,
+        ]);
+        $checkedIn = Appointment::factory()->create([
+            'facility_id' => $otherFacility->id,
+            'department_id' => $otherDepartment->id,
+            'service_point_id' => $otherServicePoint->id,
+            'patient_id' => $otherPatient->id,
+            'status' => Appointment::STATUS_CHECKED_IN,
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('appointments.index', ['search' => 'APT-HIDDEN-FACILITY']))
+            ->assertOk()
+            ->assertDontSee($otherPatient->full_name);
+        $this->actingAs($staff)->post(route('appointments.check-in', $scheduled))->assertForbidden();
+        $this->actingAs($staff)->post(route('appointments.cancel', $scheduled))->assertForbidden();
+        $this->actingAs($staff)->post(route('appointments.complete', $checkedIn))->assertForbidden();
+
+        $this->assertSame(Appointment::STATUS_SCHEDULED, $scheduled->fresh()->status);
+        $this->assertSame(Appointment::STATUS_CHECKED_IN, $checkedIn->fresh()->status);
+    }
+
+    public function test_staff_cannot_forge_an_entire_appointment_in_another_facility(): void
+    {
+        $staff = $this->staffWithRole('receptionist');
+        $otherFacility = Facility::factory()->create(['is_active' => true]);
+        $otherDepartment = Department::factory()->create(['facility_id' => $otherFacility->id]);
+        $otherServicePoint = ServicePoint::factory()->create(['department_id' => $otherDepartment->id]);
+        $otherPatient = Patient::factory()->create(['facility_id' => $otherFacility->id]);
+
+        $this->actingAs($staff)->post(route('appointments.store'), [
+            'facility_id' => $otherFacility->id,
+            'department_id' => $otherDepartment->id,
+            'service_point_id' => $otherServicePoint->id,
+            'patient_id' => $otherPatient->id,
+            'scheduled_start' => now()->addDays(2)->setTime(9, 0)->toDateTimeString(),
+            'scheduled_end' => now()->addDays(2)->setTime(9, 30)->toDateTimeString(),
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('appointments', ['patient_id' => $otherPatient->id]);
+    }
+
     private function appointmentContext(): array
     {
         $facility = Facility::query()->where('name', 'CityCare Medical Center')->where('is_active', true)->firstOrFail();
@@ -170,6 +226,13 @@ class AppointmentControllerTest extends TestCase
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
         $patient = Patient::factory()->create(['facility_id' => $facility->id]);
         $provider = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
+        StaffProfile::query()->create([
+            'user_id' => $provider->id,
+            'department_id' => $department->id,
+            'service_point_id' => $servicePoint->id,
+            'employee_number' => 'PROVIDER-'.$provider->id,
+            'employment_status' => 'active',
+        ]);
 
         return compact('facility', 'department', 'servicePoint', 'patient', 'provider');
     }
@@ -183,6 +246,14 @@ class AppointmentControllerTest extends TestCase
         ]);
 
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+        $facility = Facility::query()->where('name', 'CityCare Medical Center')->firstOrFail();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::create([
+            'user_id' => $user->id,
+            'department_id' => $department->id,
+            'employee_number' => 'APPOINTMENT-'.$user->id,
+            'employment_status' => 'active',
+        ]);
 
         return $user;
     }

@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -63,10 +65,38 @@ class PatientSearchJsonTest extends TestCase
             ->assertJsonValidationErrors('q');
     }
 
+    public function test_patient_search_never_returns_a_matching_patient_from_another_facility(): void
+    {
+        $staff = $this->userWithRole('receptionist');
+        $otherFacility = Facility::factory()->create(['is_active' => true]);
+        $hidden = Patient::factory()->create([
+            'facility_id' => $otherFacility->id,
+            'first_name' => 'Boundary',
+            'last_name' => 'Hidden',
+        ]);
+
+        $this->actingAs($staff)
+            ->getJson(route('patients.search', ['q' => 'Boundary']))
+            ->assertOk()
+            ->assertJsonPath('meta.count', 0)
+            ->assertJsonMissing(['id' => $hidden->id]);
+    }
+
     private function userWithRole(string $roleSlug, string $userType = 'staff'): User
     {
         $user = User::factory()->create(['user_type' => $userType, 'is_active' => true]);
         $user->roles()->attach(Role::query()->where('slug', $roleSlug)->value('id'));
+
+        if ($userType === 'staff') {
+            $facility = Facility::query()->where('name', 'CityCare Medical Center')->firstOrFail();
+            $department = Department::factory()->create(['facility_id' => $facility->id]);
+            StaffProfile::create([
+                'user_id' => $user->id,
+                'department_id' => $department->id,
+                'employee_number' => 'SEARCH-'.$user->id,
+                'employment_status' => 'active',
+            ]);
+        }
 
         return $user;
     }
