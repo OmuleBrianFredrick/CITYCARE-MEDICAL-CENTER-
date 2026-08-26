@@ -18,7 +18,10 @@ use App\Http\Controllers\LaboratoryOrderController;
 use App\Http\Controllers\LaboratoryWorkspaceController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientNotificationController;
+use App\Http\Controllers\PatientPortalActivationController;
 use App\Http\Controllers\PatientPortalController;
+use App\Http\Controllers\PatientPortalWorkspaceController;
 use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\PharmacyWorkspaceController;
 use App\Http\Controllers\ReportingController;
@@ -29,11 +32,19 @@ Route::redirect('/', '/login')->name('home');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:login')->name('login.store');
+    Route::get('/portal/activate/{token}', [PatientPortalActivationController::class, 'create'])->name('portal.activation.create');
+    Route::post('/portal/activate', [PatientPortalActivationController::class, 'store'])->middleware('throttle:6,1')->name('portal.activation.store');
 });
 
 Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:dashboard.view')->name('dashboard');
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+
+    Route::middleware('permission:patient-portal.manage')->group(function () {
+        Route::get('/portal', [PatientPortalWorkspaceController::class, 'index'])->name('portal.index');
+        Route::post('/portal/notifications/read-all', [PatientNotificationController::class, 'markAllRead'])->name('portal.notifications.read-all');
+        Route::post('/portal/notifications/{notification}/read', [PatientNotificationController::class, 'markRead'])->name('portal.notifications.read');
+    });
 
     Route::middleware('permission:patients.view')->group(function () {
         Route::get('/patients', [PatientController::class, 'index'])->name('patients.index');
@@ -47,6 +58,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     });
     Route::middleware('permission:patients.update')->group(function () {
         Route::post('/patients/{patient}/portal/provision', [PatientPortalController::class, 'provision'])->whereNumber('patient')->name('patients.portal.provision');
+        Route::post('/patients/{patient}/portal/invitation', [PatientPortalController::class, 'invitation'])->whereNumber('patient')->name('patients.portal.invitation');
         Route::post('/patients/{patient}/portal/activate', [PatientPortalController::class, 'activate'])->whereNumber('patient')->name('patients.portal.activate');
         Route::post('/patients/{patient}/portal/disable', [PatientPortalController::class, 'disable'])->whereNumber('patient')->name('patients.portal.disable');
     });

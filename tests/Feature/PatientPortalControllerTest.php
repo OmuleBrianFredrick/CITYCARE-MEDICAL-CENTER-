@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,8 +26,8 @@ class PatientPortalControllerTest extends TestCase
 
     public function test_staff_can_view_patient_portal_management(): void
     {
-        $staff = $this->staffWithRole('receptionist');
         $patient = $this->patient();
+        $staff = $this->staffWithRole('receptionist', $patient->facility);
 
         $this->actingAs($staff)
             ->get(route('patients.portal.show', $patient))
@@ -35,12 +37,13 @@ class PatientPortalControllerTest extends TestCase
 
     public function test_staff_can_provision_activate_and_disable_patient_portal(): void
     {
-        $staff = $this->staffWithRole('administrator');
         $patient = $this->patient('portal@citycare.test');
+        $staff = $this->staffWithRole('administrator', $patient->facility);
 
         $this->actingAs($staff)
             ->post(route('patients.portal.provision', $patient))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('portal_activation_url');
 
         $patient->refresh();
         $this->assertNotNull($patient->user_id);
@@ -60,12 +63,17 @@ class PatientPortalControllerTest extends TestCase
 
         $this->assertFalse($patient->user->fresh()->is_active);
         $this->assertNotNull($patient->fresh()->portal_disabled_at);
+
+        $this->actingAs($staff)
+            ->post(route('patients.portal.invitation', $patient))
+            ->assertRedirect()
+            ->assertSessionHas('portal_activation_url');
     }
 
     public function test_user_without_patient_update_permission_cannot_manage_portal(): void
     {
-        $staff = $this->staffWithRole('inventory');
         $patient = $this->patient('blocked@citycare.test');
+        $staff = $this->staffWithRole('inventory', $patient->facility);
 
         $this->actingAs($staff)
             ->get(route('patients.portal.show', $patient))
@@ -78,8 +86,8 @@ class PatientPortalControllerTest extends TestCase
 
     public function test_portal_management_does_not_change_patient_record_identity(): void
     {
-        $staff = $this->staffWithRole('administrator');
         $patient = $this->patient('identity@citycare.test');
+        $staff = $this->staffWithRole('administrator', $patient->facility);
         $beforeMrn = $patient->medical_record_number;
         $beforeName = $patient->full_name;
 
@@ -88,6 +96,27 @@ class PatientPortalControllerTest extends TestCase
         $patient->refresh();
         $this->assertSame($beforeMrn, $patient->medical_record_number);
         $this->assertSame($beforeName, $patient->full_name);
+    }
+
+    public function test_staff_cannot_manage_a_patient_from_another_facility(): void
+    {
+        $homeFacility = Facility::query()->where('name', 'CityCare Medical Center')->firstOrFail();
+        $otherFacility = Facility::factory()->create(['name' => 'CityCare East']);
+        $staff = $this->staffWithRole('administrator', $homeFacility);
+        $patient = Patient::factory()->create([
+            'facility_id' => $otherFacility->id,
+            'email' => 'other.facility@citycare.test',
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('patients.portal.show', $patient))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->post(route('patients.portal.provision', $patient))
+            ->assertForbidden();
+
+        $this->assertNull($patient->fresh()->user_id);
     }
 
     private function patient(?string $email = 'patient@citycare.test'): Patient
@@ -100,7 +129,7 @@ class PatientPortalControllerTest extends TestCase
         ]);
     }
 
-    private function staffWithRole(string $roleSlug): User
+    private function staffWithRole(string $roleSlug, Facility $facility): User
     {
         $user = User::factory()->create([
             'user_type' => 'staff',
@@ -109,6 +138,8 @@ class PatientPortalControllerTest extends TestCase
         ]);
 
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::create(['user_id' => $user->id, 'department_id' => $department->id]);
 
         return $user;
     }

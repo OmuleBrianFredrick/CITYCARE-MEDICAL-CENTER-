@@ -58,13 +58,25 @@ class DashboardWorkspaceTest extends TestCase
     {
         $user = User::factory()->create(['user_type' => 'patient', 'is_active' => true]);
         $user->roles()->attach(Role::query()->where('slug', 'patient')->value('id'));
+        $facility = Facility::query()->where('is_active', true)->firstOrFail();
+        Patient::factory()->create([
+            'facility_id' => $facility->id,
+            'user_id' => $user->id,
+            'portal_activated_at' => now(),
+            'portal_disabled_at' => null,
+        ]);
 
         $this->actingAs($user)
             ->get(route('dashboard'))
+            ->assertRedirect(route('portal.index'));
+
+        $this->actingAs($user)
+            ->get(route('portal.index'))
             ->assertOk()
             ->assertDontSee('Active patients')
             ->assertDontSee('Appointments today')
             ->assertDontSee('Organization')
-            ->assertSee('No data yet');
+            ->assertSee('My health')
+            ->assertSee('My profile');
     }
 }

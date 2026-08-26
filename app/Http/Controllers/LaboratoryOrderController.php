@@ -10,6 +10,7 @@ use App\Models\LaboratoryOrder;
 use App\Models\LaboratoryOrderItem;
 use App\Services\FacilityAccessService;
 use App\Services\LaboratoryOrderService;
+use App\Services\PatientNotificationService;
 use Illuminate\Http\RedirectResponse;
 
 class LaboratoryOrderController extends Controller
@@ -17,6 +18,7 @@ class LaboratoryOrderController extends Controller
     public function __construct(
         private readonly LaboratoryOrderService $laboratory,
         private readonly FacilityAccessService $facilityAccess,
+        private readonly PatientNotificationService $notifications,
     ) {}
 
     public function store(StoreLaboratoryOrderRequest $request, ClinicalEncounter $encounter): RedirectResponse
@@ -32,6 +34,7 @@ class LaboratoryOrderController extends Controller
         $item->loadMissing('order.encounter');
         $this->facilityAccess->assertEncounterAccessible($request->user(), $item->order->encounter);
         $result = $this->laboratory->recordResult($item, $request->user(), $request->validated());
+        $this->notifications->laboratoryResultReady($result);
 
         return back()->with('status', "Laboratory result #{$result->id} recorded successfully.");
     }

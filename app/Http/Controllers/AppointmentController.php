@@ -9,6 +9,7 @@ use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\User;
 use App\Services\AppointmentService;
+use App\Services\PatientNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,10 @@ use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
-    public function __construct(private readonly AppointmentService $appointments) {}
+    public function __construct(
+        private readonly AppointmentService $appointments,
+        private readonly PatientNotificationService $notifications,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -66,6 +70,7 @@ class AppointmentController extends Controller
     public function store(StoreAppointmentRequest $request): RedirectResponse
     {
         $appointment = $this->appointments->create($request->appointmentData());
+        $this->notifications->appointmentScheduled($appointment);
 
         return redirect()->route('appointments.index')->with('status', "Appointment {$appointment->appointment_number} scheduled successfully.");
     }
@@ -80,6 +85,7 @@ class AppointmentController extends Controller
             'status' => Appointment::STATUS_CANCELLED,
             'cancelled_at' => now(),
         ])->save();
+        $this->notifications->appointmentCancelled($appointment);
 
         return back()->with('status', "Appointment {$appointment->appointment_number} cancelled.");
     }

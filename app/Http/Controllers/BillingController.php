@@ -18,6 +18,7 @@ use App\Models\ServicePrice;
 use App\Models\User;
 use App\Services\BillingService;
 use App\Services\FacilityAccessService;
+use App\Services\PatientNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -27,6 +28,7 @@ class BillingController extends Controller
     public function __construct(
         private readonly BillingService $billing,
         private readonly FacilityAccessService $facilities,
+        private readonly PatientNotificationService $notifications,
     ) {}
 
     public function index(Request $request): View
@@ -160,7 +162,8 @@ class BillingController extends Controller
         $this->facilities->assertPatientAccessible($staff, $patient);
         $validated = $request->validated();
 
-        $this->billing->createInvoice($staff, $patient, $validated['charges'], $validated);
+        $invoice = $this->billing->createInvoice($staff, $patient, $validated['charges'], $validated);
+        $this->notifications->invoiceIssued($invoice);
 
         return back()->with('status', 'Invoice created successfully.');
     }
@@ -172,13 +175,14 @@ class BillingController extends Controller
         $this->facilities->assertFacilityAccessible($staff, $invoice->facility_id);
         $validated = $request->validated();
 
-        $this->billing->recordPayment(
+        $payment = $this->billing->recordPayment(
             $staff,
             $invoice,
             (float) $validated['amount'],
             $validated['method'],
             $validated,
         );
+        $this->notifications->paymentRecorded($payment);
 
         return back()->with('status', 'Payment recorded successfully.');
     }
@@ -188,7 +192,8 @@ class BillingController extends Controller
         /** @var User $staff */
         $staff = $request->user();
         $this->facilities->assertFacilityAccessible($staff, $invoice->facility_id);
-        $this->billing->cancelInvoice($staff, $invoice, $request->validated('reason'));
+        $invoice = $this->billing->cancelInvoice($staff, $invoice, $request->validated('reason'));
+        $this->notifications->invoiceCancelled($invoice);
 
         return back()->with('status', 'Invoice cancelled successfully.');
     }
@@ -205,12 +210,13 @@ class BillingController extends Controller
     {
         $payment->loadMissing('invoice');
         $this->facilities->assertFacilityAccessible($request->user(), $payment->invoice->facility_id);
-        $this->billing->reversePayment(
+        $payment = $this->billing->reversePayment(
             $request->user(),
             $payment,
             $request->validated('action'),
             $request->validated('reason'),
         );
+        $this->notifications->paymentReversed($payment);
 
         return back()->with('status', 'Payment reversal recorded successfully.');
     }

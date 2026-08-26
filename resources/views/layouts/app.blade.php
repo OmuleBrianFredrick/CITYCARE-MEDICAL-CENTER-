@@ -36,7 +36,7 @@
     <div class="workspace-main">
         @auth
             <header class="workspace-topbar">
-                <div class="workspace-context"><strong>{{ $shell['facility']?->name ?? 'CityCare Medical Center' }}</strong><span>Secure, permission-aware clinical workspace</span></div>
+                <div class="workspace-context"><strong>{{ $shell['facility']?->name ?? 'CityCare Medical Center' }}</strong><span>{{ $shell['workspaceDescription'] ?? 'Secure CityCare workspace' }}</span></div>
                 <span class="workspace-role">{{ $shell['roleLabel'] ?? 'CityCare account' }}</span>
             </header>
         @endauth

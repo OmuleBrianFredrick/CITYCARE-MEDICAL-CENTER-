@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Patient;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\PatientPortalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,6 +32,7 @@ class PatientPortalServiceTest extends TestCase
 
         $this->assertSame('patient', $user->user_type);
         $this->assertFalse($user->is_active);
+        $this->assertTrue($user->hasRole('patient'));
         $this->assertSame($user->id, $patient->fresh()->user_id);
         $this->assertNotNull($patient->fresh()->portal_invited_at);
     }

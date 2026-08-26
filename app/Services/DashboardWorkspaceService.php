@@ -22,6 +22,23 @@ class DashboardWorkspaceService
     {
         $user->loadMissing('roles.permissions');
 
+        if ($user->isPatient()) {
+            $patient = $user->patientProfile()->with('facility')->first();
+
+            return [
+                'facility' => $patient?->facility,
+                'roleLabel' => 'Patient',
+                'workspaceDescription' => 'Secure patient self-service workspace',
+                'navigation' => [[
+                    'label' => 'My health',
+                    'route' => 'portal.index',
+                    'active' => 'portal.*',
+                    'permission' => 'patient-portal.manage',
+                    'url' => route('portal.index'),
+                ]],
+            ];
+        }
+
         $permissions = $user->roles
             ->flatMap(fn ($role) => $role->permissions)
             ->pluck('slug')
@@ -36,6 +53,7 @@ class DashboardWorkspaceService
         return [
             'facility' => $facility,
             'roleLabel' => $user->roles->pluck('name')->join(', ') ?: 'CityCare account',
+            'workspaceDescription' => 'Secure, permission-aware clinical workspace',
             'navigation' => $this->navigation($permissions),
         ];
     }
