@@ -3,12 +3,16 @@
 namespace App\Services;
 
 use App\Models\ReportRun;
+use App\Models\User;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportExportService
 {
-    public function csv(ReportRun $run): StreamedResponse
+    public function __construct(private readonly ReportingAccessService $access) {}
+
+    public function csv(User $staff, ReportRun $run): StreamedResponse
     {
+        $this->access->assertRunAccessible($staff, $run);
         $run->loadMissing('definition', 'requester', 'facility');
 
         if ($run->status !== ReportRun::STATUS_COMPLETED) {
@@ -21,12 +25,12 @@ class ReportExportService
                 throw new \RuntimeException('Unable to open export stream.');
             }
 
-            fputcsv($handle, ['Report', $run->definition->name]);
-            fputcsv($handle, ['Status', $run->status]);
-            fputcsv($handle, ['Requested By', $run->requester?->name ?? 'System']);
-            fputcsv($handle, ['Facility', $run->facility?->name ?? 'All Facilities']);
-            fputcsv($handle, ['Period Start', $run->period_start?->toDateTimeString()]);
-            fputcsv($handle, ['Period End', $run->period_end?->toDateTimeString()]);
+            $this->writeRow($handle, ['Report', $run->definition->name]);
+            $this->writeRow($handle, ['Status', $run->status]);
+            $this->writeRow($handle, ['Requested By', $run->requester?->name ?? 'System']);
+            $this->writeRow($handle, ['Facility', $run->facility?->name ?? 'All Facilities']);
+            $this->writeRow($handle, ['Period Start', $run->period_start?->toDateTimeString()]);
+            $this->writeRow($handle, ['Period End', $run->period_end?->toDateTimeString()]);
             fputcsv($handle, []);
 
             foreach (($run->result_metadata ?? []) as $key => $value) {
@@ -34,7 +38,7 @@ class ReportExportService
                     ? $this->label($value)
                     : $this->scalarize($value);
 
-                fputcsv($handle, [$this->label($key), $value]);
+                $this->writeRow($handle, [$this->label($key), $value]);
             }
 
             fclose($handle);
@@ -54,6 +58,24 @@ class ReportExportService
         }
 
         return $value;
+    }
+
+    /**
+     * Prefix formula-like spreadsheet cells so opening a CSV cannot execute
+     * values originating in names or report metadata as a formula.
+     *
+     * @param  resource  $handle
+     * @param  array<int, mixed>  $values
+     */
+    private function writeRow($handle, array $values): void
+    {
+        fputcsv($handle, array_map(function (mixed $value): mixed {
+            if (is_string($value) && preg_match('/^[=+\-@\t\r\n]/u', $value) === 1) {
+                return "'".$value;
+            }
+
+            return $value;
+        }, $values));
     }
 
     private function label(string $key): string

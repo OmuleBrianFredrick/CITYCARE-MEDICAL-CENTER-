@@ -4,16 +4,18 @@ namespace Tests\Feature;
 
 use App\Models\ClinicalEncounter;
 use App\Models\Facility;
-use App\Models\Invoice;
 use App\Models\InventoryItem;
 use App\Models\InventoryStockBalance;
 use App\Models\InventoryStore;
+use App\Models\Invoice;
 use App\Models\LaboratoryOrder;
 use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\ReportDefinition;
 use App\Models\ReportRun;
+use App\Models\Role;
 use App\Models\User;
+use App\Services\ReportingService;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -28,6 +30,7 @@ class ReportingIntegrationTest extends TestCase
     {
         $this->seed(CityCareAccessSeeder::class);
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
+        $staff->roles()->sync([Role::where('slug', 'super-admin')->value('id')]);
 
         $facility = Facility::factory()->create();
         $otherFacility = Facility::factory()->create();
@@ -55,9 +58,9 @@ class ReportingIntegrationTest extends TestCase
             'status' => ClinicalEncounter::STATUS_OPEN,
         ]);
 
-        $includedEncounter->update(['created_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
-        $oldEncounter->update(['created_at' => now()->subDays(10), 'updated_at' => now()->subDays(10)]);
-        $otherEncounter->update(['created_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
+        DB::table('clinical_encounters')->where('id', $includedEncounter->id)->update(['created_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
+        DB::table('clinical_encounters')->where('id', $oldEncounter->id)->update(['created_at' => now()->subDays(10), 'updated_at' => now()->subDays(10)]);
+        DB::table('clinical_encounters')->where('id', $otherEncounter->id)->update(['created_at' => now()->subDays(2), 'updated_at' => now()->subDays(2)]);
 
         $definition = ReportDefinition::factory()->create([
             'code' => 'clinical_activity',
@@ -66,21 +69,22 @@ class ReportingIntegrationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $run = app(\App\Services\ReportingService::class)->run($staff, $definition, [
+        $run = app(ReportingService::class)->run($staff, $definition, [
             'facility_id' => $facility->id,
             'date_from' => Carbon::today()->subDays(7)->toDateString(),
             'date_to' => Carbon::today()->toDateString(),
         ], $facility->id);
 
         $result = $run->fresh()->result_metadata;
-        $this->assertSame(2, $result['total_encounters']);
-        $this->assertSame(['closed' => 1, 'open' => 1], $result['by_status']);
+        $this->assertSame(1, $result['total_encounters']);
+        $this->assertSame(['open' => 1], $result['by_status']);
     }
 
     public function test_laboratory_pharmacy_billing_and_inventory_reports_reflect_operational_records(): void
     {
         $this->seed(CityCareAccessSeeder::class);
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
+        $staff->roles()->sync([Role::where('slug', 'super-admin')->value('id')]);
         $facility = Facility::factory()->create();
 
         $labPatient = Patient::factory()->create(['facility_id' => $facility->id]);
@@ -100,6 +104,24 @@ class ReportingIntegrationTest extends TestCase
             'total' => 100,
             'paid_amount' => 40,
             'balance_due' => 60,
+        ]);
+        Invoice::factory()->create([
+            'facility_id' => $facility->id,
+            'patient_id' => $labPatient->id,
+            'status' => Invoice::STATUS_DRAFT,
+            'subtotal' => 500,
+            'total' => 500,
+            'paid_amount' => 0,
+            'balance_due' => 500,
+        ]);
+        Invoice::factory()->create([
+            'facility_id' => $facility->id,
+            'patient_id' => $labPatient->id,
+            'status' => Invoice::STATUS_CANCELLED,
+            'subtotal' => 300,
+            'total' => 300,
+            'paid_amount' => 0,
+            'balance_due' => 300,
         ]);
 
         $store = InventoryStore::factory()->create(['facility_id' => $facility->id, 'name' => 'Reporting Store']);
@@ -124,19 +146,24 @@ class ReportingIntegrationTest extends TestCase
                 'supported_filters' => $filters,
                 'is_active' => true,
             ]);
-            $run = app(\App\Services\ReportingService::class)->run($staff, $definition, ['facility_id' => $facility->id], $facility->id);
+            $run = app(ReportingService::class)->run($staff, $definition, ['facility_id' => $facility->id], $facility->id);
             $this->assertSame(ReportRun::STATUS_COMPLETED, $run->fresh()->status);
         }
 
         $billingDefinition = ReportDefinition::where('code', 'billing_summary')->latest('id')->firstOrFail();
-        $billing = app(\App\Services\ReportingService::class)->run($staff, $billingDefinition, ['facility_id' => $facility->id], $facility->id);
+        $billing = app(ReportingService::class)->run($staff, $billingDefinition, ['facility_id' => $facility->id], $facility->id);
         $this->assertSame(1, $billing->result_metadata['invoice_count']);
         $this->assertSame(100.0, (float) $billing->result_metadata['total']);
         $this->assertSame(40.0, (float) $billing->result_metadata['paid']);
         $this->assertSame(60.0, (float) $billing->result_metadata['outstanding']);
+        $this->assertSame([
+            Invoice::STATUS_CANCELLED => 1,
+            Invoice::STATUS_DRAFT => 1,
+            Invoice::STATUS_ISSUED => 1,
+        ], $billing->result_metadata['by_status']);
 
         $inventoryDefinition = ReportDefinition::where('code', 'inventory_summary')->latest('id')->firstOrFail();
-        $inventory = app(\App\Services\ReportingService::class)->run($staff, $inventoryDefinition, ['facility_id' => $facility->id], $facility->id);
+        $inventory = app(ReportingService::class)->run($staff, $inventoryDefinition, ['facility_id' => $facility->id], $facility->id);
         $this->assertSame(1, $inventory->result_metadata['stock_line_count']);
         $this->assertSame(12.0, (float) $inventory->result_metadata['quantity_on_hand']);
         $this->assertSame(10.0, (float) $inventory->result_metadata['quantity_available']);
@@ -147,6 +174,7 @@ class ReportingIntegrationTest extends TestCase
     {
         $this->seed(CityCareAccessSeeder::class);
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
+        $staff->roles()->sync([Role::where('slug', 'super-admin')->value('id')]);
         $definition = ReportDefinition::factory()->create([
             'code' => 'inventory_summary',
             'category' => 'inventory',
@@ -162,7 +190,7 @@ class ReportingIntegrationTest extends TestCase
             'inventory_stock_balances' => DB::table('inventory_stock_balances')->count(),
         ];
 
-        app(\App\Services\ReportingService::class)->run($staff, $definition);
+        app(ReportingService::class)->run($staff, $definition);
 
         $after = [
             'invoices' => DB::table('invoices')->count(),

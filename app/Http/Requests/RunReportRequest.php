@@ -8,7 +8,11 @@ class RunReportRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasPermissionTo('reports.view') ?? false;
+        $staff = $this->user();
+
+        return $staff?->isStaff()
+            && $staff->isActive()
+            && $staff->hasPermissionTo('reports.view');
     }
 
     public function rules(): array
@@ -24,6 +28,10 @@ class RunReportRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $filters = $this->input('filters', []);
+
+        if (! is_array($filters)) {
+            return;
+        }
 
         $this->merge([
             'filters' => array_filter([
