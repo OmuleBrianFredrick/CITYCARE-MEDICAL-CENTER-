@@ -20,7 +20,7 @@ class DashboardWorkspaceService
      */
     public function shell(User $user): array
     {
-        $user->loadMissing('roles.permissions');
+        $user->loadMissing('roles.permissions', 'staffProfile.department.facility');
 
         if ($user->isPatient()) {
             $patient = $user->patientProfile()->with('facility')->first();
@@ -45,16 +45,19 @@ class DashboardWorkspaceService
             ->unique()
             ->values();
 
-        $facility = Facility::query()
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->first();
+        $facility = $user->hasRole('super-admin')
+            ? Facility::query()->where('is_active', true)->orderBy('id')->first()
+            : $user->staffProfile?->department?->facility;
+
+        if (! $facility?->is_active) {
+            $facility = null;
+        }
 
         return [
             'facility' => $facility,
             'roleLabel' => $user->roles->pluck('name')->join(', ') ?: 'CityCare account',
             'workspaceDescription' => 'Secure, permission-aware clinical workspace',
-            'navigation' => $this->navigation($permissions),
+            'navigation' => $this->navigation($permissions, $user),
         ];
     }
 
@@ -71,7 +74,7 @@ class DashboardWorkspaceService
         ];
     }
 
-    private function navigation(Collection $permissions): array
+    private function navigation(Collection $permissions, User $user): array
     {
         $items = [
             ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'permission' => null],
@@ -85,10 +88,13 @@ class DashboardWorkspaceService
             ['label' => 'Reports', 'route' => 'reports.index', 'active' => 'reports.*', 'permission' => 'reports.view'],
             ['label' => 'Audit log', 'route' => 'audit.index', 'active' => 'audit.*', 'permission' => 'audit.view'],
             ['label' => 'Organization', 'route' => 'organization.index', 'active' => 'organization.*', 'permission' => 'organization.view'],
+            ['label' => 'Staff', 'route' => 'staff.index', 'active' => 'staff.*', 'permission' => 'staff.manage'],
+            ['label' => 'Access control', 'route' => 'access.roles.index', 'active' => 'access.*', 'permission' => 'access.manage', 'role' => 'super-admin'],
         ];
 
         return collect($items)
-            ->filter(fn (array $item) => $item['permission'] === null || $permissions->contains($item['permission']))
+            ->filter(fn (array $item) => ($item['permission'] === null || $permissions->contains($item['permission']))
+                && (! isset($item['role']) || $user->hasRole($item['role'])))
             ->map(fn (array $item) => array_merge($item, ['url' => route($item['route'])]))
             ->values()
             ->all();
@@ -218,6 +224,12 @@ class DashboardWorkspaceService
         }
         if ($user->hasPermissionTo('organization.manage')) {
             $actions[] = ['label' => 'Configure organization', 'description' => 'Manage facility, department, and service-point settings.', 'url' => route('organization.index')];
+        }
+        if ($user->hasPermissionTo('staff.manage')) {
+            $actions[] = ['label' => 'Invite staff member', 'description' => 'Create a facility-scoped staff invitation and role assignment.', 'url' => route('staff.create')];
+        }
+        if ($user->hasRole('super-admin') && $user->hasPermissionTo('access.manage')) {
+            $actions[] = ['label' => 'Manage role permissions', 'description' => 'Review and update protected internal access bundles.', 'url' => route('access.roles.index')];
         }
 
         return $actions;

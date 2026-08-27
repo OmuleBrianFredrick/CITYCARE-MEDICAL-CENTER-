@@ -12,6 +12,7 @@ use App\Http\Controllers\ClinicalReferralAttachmentController;
 use App\Http\Controllers\ClinicalReferralController;
 use App\Http\Controllers\ClinicalTreatmentPlanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeInvitationAcceptanceController;
 use App\Http\Controllers\InventoryCatalogController;
 use App\Http\Controllers\InventoryProcurementController;
 use App\Http\Controllers\LaboratoryOrderController;
@@ -25,6 +26,8 @@ use App\Http\Controllers\PatientPortalWorkspaceController;
 use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\PharmacyWorkspaceController;
 use App\Http\Controllers\ReportingController;
+use App\Http\Controllers\RolePermissionAdministrationController;
+use App\Http\Controllers\StaffAdministrationController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login')->name('home');
@@ -34,6 +37,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:login')->name('login.store');
     Route::get('/portal/activate/{token}', [PatientPortalActivationController::class, 'create'])->name('portal.activation.create');
     Route::post('/portal/activate', [PatientPortalActivationController::class, 'store'])->middleware('throttle:6,1')->name('portal.activation.store');
+    Route::get('/staff/setup/{token}', [EmployeeInvitationAcceptanceController::class, 'create'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('staff-invitations.accept.create');
+    Route::post('/staff/setup', [EmployeeInvitationAcceptanceController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('staff-invitations.accept.store');
 });
 
 Route::middleware(['auth', 'active'])->group(function () {
@@ -223,6 +232,24 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/audit', [AuditLogController::class, 'index'])
         ->middleware('permission:audit.view')
         ->name('audit.index');
+
+    Route::prefix('administration/staff')->name('staff.')->middleware('permission:staff.manage')->group(function () {
+        Route::get('/', [StaffAdministrationController::class, 'index'])->name('index');
+        Route::get('/create', [StaffAdministrationController::class, 'create'])->name('create');
+        Route::post('/', [StaffAdministrationController::class, 'store'])->name('store');
+        Route::get('/{staff}/edit', [StaffAdministrationController::class, 'edit'])->whereNumber('staff')->name('edit');
+        Route::put('/{staff}', [StaffAdministrationController::class, 'update'])->whereNumber('staff')->name('update');
+        Route::put('/{staff}/roles', [StaffAdministrationController::class, 'syncRoles'])->whereNumber('staff')->name('roles.update');
+        Route::post('/{staff}/deactivate', [StaffAdministrationController::class, 'deactivate'])->whereNumber('staff')->name('deactivate');
+        Route::post('/{staff}/reactivate', [StaffAdministrationController::class, 'reactivate'])->whereNumber('staff')->name('reactivate');
+        Route::post('/{staff}/invitations', [StaffAdministrationController::class, 'reissueInvitation'])->whereNumber('staff')->name('invitations.reissue');
+        Route::delete('/{staff}/invitations/{invitation}', [StaffAdministrationController::class, 'revokeInvitation'])->whereNumber(['staff', 'invitation'])->name('invitations.revoke');
+    });
+
+    Route::prefix('administration/access/roles')->name('access.roles.')->middleware('permission:access.manage')->group(function () {
+        Route::get('/', [RolePermissionAdministrationController::class, 'index'])->name('index');
+        Route::put('/{role}', [RolePermissionAdministrationController::class, 'update'])->whereNumber('role')->name('update');
+    });
 
     Route::prefix('organization')->name('organization.')->middleware('permission:organization.view')->group(function () {
         Route::get('/', [OrganizationController::class, 'index'])->name('index');

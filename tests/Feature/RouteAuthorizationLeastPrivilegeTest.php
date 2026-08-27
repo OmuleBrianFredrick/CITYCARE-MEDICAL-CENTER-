@@ -63,6 +63,8 @@ class RouteAuthorizationLeastPrivilegeTest extends TestCase
             'login.store',
             'portal.activation.create',
             'portal.activation.store',
+            'staff-invitations.accept.create',
+            'staff-invitations.accept.store',
         ], true);
     }
 }

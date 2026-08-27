@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -51,7 +53,38 @@ class DashboardWorkspaceTest extends TestCase
             ->assertSee('UGX 125,000.00')
             ->assertSee('Register patient')
             ->assertSee('Configure organization')
+            ->assertSee('Invite staff member')
+            ->assertSee('Manage role permissions')
+            ->assertSee(route('staff.index'), false)
+            ->assertSee(route('access.roles.index'), false)
             ->assertSee('Organization');
+    }
+
+    public function test_operational_administrator_shell_uses_assigned_facility_and_hides_super_access_control(): void
+    {
+        $assignedFacility = Facility::factory()->create(['name' => 'Assigned Care Facility']);
+        $department = Department::factory()->create(['facility_id' => $assignedFacility->id]);
+        $administrator = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
+        $administrator->roles()->sync([Role::query()->where('slug', 'administrator')->valueOrFail('id')]);
+        StaffProfile::create([
+            'user_id' => $administrator->id,
+            'department_id' => $department->id,
+            'employee_number' => 'DASH-ADMIN-'.$administrator->id,
+            'employment_status' => 'active',
+        ]);
+
+        Patient::factory()->count(2)->create([
+            'facility_id' => $assignedFacility->id,
+            'status' => Patient::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Assigned Care Facility')
+            ->assertSee(route('staff.index'), false)
+            ->assertDontSee(route('access.roles.index'), false)
+            ->assertSee('Active patients');
     }
 
     public function test_patient_dashboard_does_not_expose_staff_navigation_or_metrics(): void
