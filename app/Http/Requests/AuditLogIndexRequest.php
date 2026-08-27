@@ -8,7 +8,7 @@ class AuditLogIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('audit.view') ?? false;
+        return $this->user()?->hasPermissionTo('audit.view') ?? false;
     }
 
     public function rules(): array
