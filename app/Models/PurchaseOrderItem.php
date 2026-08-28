@@ -22,7 +22,18 @@ class PurchaseOrderItem extends Model
         ];
     }
 
-    public function purchaseOrder(): BelongsTo { return $this->belongsTo(PurchaseOrder::class); }
-    public function inventoryItem(): BelongsTo { return $this->belongsTo(InventoryItem::class); }
-    public function goodsReceiptItems(): HasMany { return $this->hasMany(GoodsReceiptItem::class); }
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function goodsReceiptItems(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptItem::class);
+    }
 }

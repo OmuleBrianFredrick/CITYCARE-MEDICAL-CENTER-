@@ -17,8 +17,8 @@ class ClinicalReferralAttachmentFactory extends Factory
         return [
             'clinical_referral_id' => ClinicalReferral::factory(),
             'uploaded_by' => User::factory()->state(['user_type' => 'staff', 'is_active' => true]),
-            'disk' => 'public',
-            'file_path' => 'referrals/'.fake()->uuid().'.pdf',
+            'disk' => 'local',
+            'file_path' => 'clinical-referrals/'.fake()->uuid().'.pdf',
             'file_name' => 'referral-document.pdf',
             'mime_type' => 'application/pdf',
             'file_size' => fake()->numberBetween(1024, 500000),

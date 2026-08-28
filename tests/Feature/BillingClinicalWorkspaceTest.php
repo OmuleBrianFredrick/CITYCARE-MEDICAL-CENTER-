@@ -145,6 +145,7 @@ class BillingClinicalWorkspaceTest extends TestCase
         $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $roleId = Role::where('slug', $roleSlug)->valueOrFail('id');
         $user->roles()->attach($roleId);
+
         return $user;
     }
 }

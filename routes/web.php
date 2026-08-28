@@ -105,6 +105,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/referrals/{referral}/complete', [ClinicalReferralController::class, 'complete'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.complete');
         Route::post('/referrals/{referral}/cancel', [ClinicalReferralController::class, 'cancel'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.cancel');
         Route::post('/referrals/{referral}/attachments', [ClinicalReferralAttachmentController::class, 'store'])->middleware('permission:clinical.referrals.manage')->whereNumber('referral')->name('referrals.attachments.store');
+        Route::get('/referral-attachments/{attachment}/download', [ClinicalReferralAttachmentController::class, 'download'])->whereNumber('attachment')->name('referrals.attachments.download');
         Route::delete('/referral-attachments/{attachment}', [ClinicalReferralAttachmentController::class, 'destroy'])->middleware('permission:clinical.referrals.manage')->whereNumber('attachment')->name('referrals.attachments.destroy');
         Route::post('/{encounter}/laboratory-orders', [LaboratoryOrderController::class, 'store'])->middleware('permission:laboratory.orders.create')->whereNumber('encounter')->name('laboratory-orders.store');
         Route::post('/{encounter}/close', [ClinicalEncounterController::class, 'close'])->middleware('permission:clinical.encounters.update')->whereNumber('encounter')->name('close');

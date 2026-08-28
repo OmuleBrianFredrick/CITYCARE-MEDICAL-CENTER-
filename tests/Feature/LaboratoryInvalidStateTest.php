@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicalEncounter;
-use App\Models\LaboratoryOrder;
+use App\Models\Facility;
 use App\Models\LaboratoryTest;
 use App\Models\Role;
 use App\Models\User;
@@ -41,7 +41,7 @@ class LaboratoryInvalidStateTest extends TestCase
         $service = app(LaboratoryOrderService::class);
         $staff = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
-        $otherFacility = \App\Models\Facility::factory()->create();
+        $otherFacility = Facility::factory()->create();
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $otherFacility->id,
             'is_active' => true,
@@ -90,6 +90,7 @@ class LaboratoryInvalidStateTest extends TestCase
     {
         $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $user->roles()->attach(Role::where('slug', $roleSlug)->valueOrFail('id'));
+
         return $user;
     }
 }

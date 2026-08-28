@@ -235,7 +235,54 @@
                     <button style="margin-top:12px;background:#2563eb;color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:800">Create referral</button>
                 </form>
             @endif
-            <div style="margin-top:18px">@forelse($encounter->referrals as $referral)<div style="padding:14px 0;border-bottom:1px solid #e5e7eb"><div style="display:flex;justify-content:space-between;gap:12px"><strong>Referral #{{ $referral->id }} · {{ $referral->referred_to }}</strong><span style="font-weight:800;color:#2563eb">{{ ucfirst($referral->status) }} · {{ ucfirst($referral->priority) }}</span></div><div style="color:#627d98;margin-top:4px">{{ $referral->reason }}</div>@if($referral->notes)<div style="color:#627d98;margin-top:4px">{{ $referral->notes }}</div>@endif <div style="color:#627d98;margin-top:4px">Referred by {{ $referral->referrer->name }}</div>@if($referral->attachments->isNotEmpty())<div style="margin-top:8px"><strong>Attachments</strong>@foreach($referral->attachments as $attachment)<div style="margin-top:4px;color:#627d98">{{ $attachment->file_name }}</div>@endforeach</div>@endif @if(auth()->user()?->hasPermissionTo('clinical.referrals.manage'))<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">@if($referral->isPending())<form method="POST" action="{{ route('encounters.referrals.accept', $referral) }}">@csrf<button style="border:1px solid #2563eb;border-radius:8px;background:#fff;color:#2563eb;padding:7px 10px;font-weight:800">Accept referral</button></form>@endif @if($referral->isPending() || $referral->isAccepted())<form method="POST" action="{{ route('encounters.referrals.complete', $referral) }}">@csrf<button style="border:1px solid #15803d;border-radius:8px;background:#fff;color:#15803d;padding:7px 10px;font-weight:800">Complete referral</button></form><form method="POST" action="{{ route('encounters.referrals.cancel', $referral) }}">@csrf<button style="border:1px solid #b91c1c;border-radius:8px;background:#fff;color:#b91c1c;padding:7px 10px;font-weight:800">Cancel referral</button></form>@endif</div>@endif</div>@empty<p style="color:#627d98">No referrals recorded yet.</p>@endforelse</div>
+            <div style="margin-top:18px">
+                @forelse($encounter->referrals as $referral)
+                    <div style="padding:14px 0;border-bottom:1px solid #e5e7eb">
+                        <div style="display:flex;justify-content:space-between;gap:12px">
+                            <strong>Referral #{{ $referral->id }} · {{ $referral->referred_to }}</strong>
+                            <span style="font-weight:800;color:#2563eb">{{ ucfirst($referral->status) }} · {{ ucfirst($referral->priority) }}</span>
+                        </div>
+                        <div style="color:#627d98;margin-top:4px">{{ $referral->reason }}</div>
+                        @if($referral->notes)
+                            <div style="color:#627d98;margin-top:4px">{{ $referral->notes }}</div>
+                        @endif
+                        <div style="color:#627d98;margin-top:4px">Referred by {{ $referral->referrer->name }}</div>
+
+                        @if($referral->attachments->isNotEmpty())
+                            <div style="margin-top:10px">
+                                <strong>Attachments</strong>
+                                @foreach($referral->attachments as $attachment)
+                                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">
+                                        <a href="{{ route('encounters.referrals.attachments.download', $attachment) }}" style="color:#2563eb;font-weight:800;text-decoration:none">Download {{ $attachment->file_name }}</a>
+                                        <span style="color:#627d98;font-size:.78rem">{{ number_format($attachment->file_size / 1024, 1) }} KB</span>
+                                        @if(auth()->user()?->hasPermissionTo('clinical.referrals.manage'))
+                                            <form method="POST" action="{{ route('encounters.referrals.attachments.destroy', $attachment) }}" onsubmit="return confirm('Delete this referral attachment?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button style="border:0;background:transparent;color:#b91c1c;padding:0;font-weight:800;cursor:pointer">Delete</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if(auth()->user()?->hasPermissionTo('clinical.referrals.manage'))
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                                @if($referral->isPending())
+                                    <form method="POST" action="{{ route('encounters.referrals.accept', $referral) }}">@csrf<button style="border:1px solid #2563eb;border-radius:8px;background:#fff;color:#2563eb;padding:7px 10px;font-weight:800">Accept referral</button></form>
+                                @endif
+                                @if($referral->isPending() || $referral->isAccepted())
+                                    <form method="POST" action="{{ route('encounters.referrals.complete', $referral) }}">@csrf<button style="border:1px solid #15803d;border-radius:8px;background:#fff;color:#15803d;padding:7px 10px;font-weight:800">Complete referral</button></form>
+                                    <form method="POST" action="{{ route('encounters.referrals.cancel', $referral) }}">@csrf<button style="border:1px solid #b91c1c;border-radius:8px;background:#fff;color:#b91c1c;padding:7px 10px;font-weight:800">Cancel referral</button></form>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                @empty
+                    <p style="color:#627d98">No referrals recorded yet.</p>
+                @endforelse
+            </div>
         </div>
     @endif
 

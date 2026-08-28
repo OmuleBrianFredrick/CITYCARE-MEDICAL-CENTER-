@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\PurchaseOrder;
-use App\Models\InventoryStore;
 use App\Models\Facility;
+use App\Models\InventoryStore;
+use App\Models\PurchaseOrder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

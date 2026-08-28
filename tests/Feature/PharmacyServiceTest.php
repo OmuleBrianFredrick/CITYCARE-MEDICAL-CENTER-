@@ -207,6 +207,7 @@ class PharmacyServiceTest extends TestCase
             'password' => Hash::make('Password123!'),
         ]);
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+
         return $user;
     }
 }

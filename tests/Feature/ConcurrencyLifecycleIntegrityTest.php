@@ -69,6 +69,7 @@ class ConcurrencyLifecycleIntegrityTest extends TestCase
         $department = Department::factory()->create(['facility_id' => $facility->id]);
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
         $patient = Patient::factory()->create(['facility_id' => $facility->id, 'status' => Patient::STATUS_ACTIVE]);
+
         return [$facility, $department, $servicePoint, $patient];
     }
 

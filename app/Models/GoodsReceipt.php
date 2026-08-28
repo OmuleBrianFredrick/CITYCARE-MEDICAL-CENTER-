@@ -18,9 +18,28 @@ class GoodsReceipt extends Model
         return ['received_at' => 'datetime'];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function purchaseOrder(): BelongsTo { return $this->belongsTo(PurchaseOrder::class); }
-    public function store(): BelongsTo { return $this->belongsTo(InventoryStore::class, 'store_id'); }
-    public function receivedBy(): BelongsTo { return $this->belongsTo(User::class, 'received_by_id'); }
-    public function items(): HasMany { return $this->hasMany(GoodsReceiptItem::class); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(InventoryStore::class, 'store_id');
+    }
+
+    public function receivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptItem::class);
+    }
 }

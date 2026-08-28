@@ -54,7 +54,7 @@ class CityCareAccessSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::updateOrCreate(['slug' => $permission['slug']], $permission);
+            Permission::firstOrCreate(['slug' => $permission['slug']], $permission);
         }
 
         $roles = [
@@ -72,9 +72,12 @@ class CityCareAccessSeeder extends Seeder
         ];
 
         foreach ($roles as $slug => $definition) {
-            $role = Role::updateOrCreate(['slug' => $slug], ['name' => $definition['name'], 'description' => $definition['description'], 'is_system' => true]);
+            $role = Role::firstOrCreate(['slug' => $slug], ['name' => $definition['name'], 'description' => $definition['description'], 'is_system' => true]);
             $permissionIds = Permission::whereIn('slug', $definition['permissions'])->pluck('id');
-            $role->permissions()->sync($permissionIds);
+
+            if ($role->wasRecentlyCreated || in_array($slug, ['super-admin', 'patient'], true)) {
+                $role->permissions()->sync($permissionIds);
+            }
         }
     }
 }

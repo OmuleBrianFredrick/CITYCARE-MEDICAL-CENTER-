@@ -121,6 +121,7 @@ class LaboratoryOrderService
                 'cancelled_at' => now(),
             ]);
             $order->update(['status' => LaboratoryOrder::STATUS_CANCELLED, 'cancelled_at' => now()]);
+
             return $order->fresh('items');
         });
     }

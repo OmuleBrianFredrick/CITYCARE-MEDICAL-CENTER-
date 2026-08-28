@@ -14,9 +14,13 @@ class Invoice extends Model
     use HasFactory;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_ISSUED = 'issued';
+
     public const STATUS_PARTIALLY_PAID = 'partially_paid';
+
     public const STATUS_PAID = 'paid';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     protected function casts(): array
@@ -34,18 +38,68 @@ class Invoice extends Model
         ];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function patient(): BelongsTo { return $this->belongsTo(Patient::class); }
-    public function encounter(): BelongsTo { return $this->belongsTo(ClinicalEncounter::class); }
-    public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by_id'); }
-    public function issuedBy(): BelongsTo { return $this->belongsTo(User::class, 'issued_by_id'); }
-    public function cancelledBy(): BelongsTo { return $this->belongsTo(User::class, 'cancelled_by_id'); }
-    public function lineItems(): HasMany { return $this->hasMany(InvoiceLineItem::class); }
-    public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
 
-    public function isDraft(): bool { return $this->status === self::STATUS_DRAFT; }
-    public function isIssued(): bool { return $this->status === self::STATUS_ISSUED; }
-    public function isPartiallyPaid(): bool { return $this->status === self::STATUS_PARTIALLY_PAID; }
-    public function isPaid(): bool { return $this->status === self::STATUS_PAID; }
-    public function isCancelled(): bool { return $this->status === self::STATUS_CANCELLED; }
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
+    }
+
+    public function encounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_id');
+    }
+
+    public function issuedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'issued_by_id');
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by_id');
+    }
+
+    public function lineItems(): HasMany
+    {
+        return $this->hasMany(InvoiceLineItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function isIssued(): bool
+    {
+        return $this->status === self::STATUS_ISSUED;
+    }
+
+    public function isPartiallyPaid(): bool
+    {
+        return $this->status === self::STATUS_PARTIALLY_PAID;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->status === self::STATUS_PAID;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
 }

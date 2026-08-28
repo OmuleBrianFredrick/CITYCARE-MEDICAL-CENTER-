@@ -21,6 +21,13 @@ class InventoryStockBalance extends Model
         ];
     }
 
-    public function store(): BelongsTo { return $this->belongsTo(InventoryStore::class, 'store_id'); }
-    public function inventoryItem(): BelongsTo { return $this->belongsTo(InventoryItem::class); }
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(InventoryStore::class, 'store_id');
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
 }

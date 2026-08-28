@@ -29,7 +29,9 @@ class CityCareDemoAccountSeeder extends Seeder
 
     public function run(): void
     {
-        $basePassword = env('CITYCARE_TEST_PASSWORD');
+        $this->ensureSafeEnvironment();
+
+        $basePassword = config('citycare.demo_password');
 
         if (! is_string($basePassword) || strlen($basePassword) < 12) {
             throw ValidationException::withMessages([
@@ -60,6 +62,15 @@ class CityCareDemoAccountSeeder extends Seeder
     public static function passwordFor(string $basePassword, string $suffix): string
     {
         return $basePassword.'-'.$suffix;
+    }
+
+    private function ensureSafeEnvironment(): void
+    {
+        if (! app()->environment(['local', 'testing'])) {
+            throw ValidationException::withMessages([
+                'environment' => 'CityCare demonstration accounts may only be seeded in local or testing environments.',
+            ]);
+        }
     }
 
     private function syncStaffProfile(User $user, array $account): void

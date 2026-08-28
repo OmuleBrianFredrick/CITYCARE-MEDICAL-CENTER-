@@ -12,9 +12,11 @@ class CityCareOrganizationSeeder extends Seeder
 {
     public function run(): void
     {
-        $facility = Facility::updateOrCreate(
-            ['name' => 'CityCare Medical Center'],
-            [
+        $facility = Facility::query()->orderBy('id')->first();
+
+        if (! $facility) {
+            $facility = Facility::create([
+                'name' => 'CityCare Medical Center',
                 'legal_name' => 'CityCare Medical Center',
                 'country' => 'Uganda',
                 'timezone' => 'Africa/Kampala',
@@ -23,8 +25,8 @@ class CityCareOrganizationSeeder extends Seeder
                 'secondary_color' => '#0F172A',
                 'accent_color' => '#F4C430',
                 'is_active' => true,
-            ]
-        );
+            ]);
+        }
 
         $departments = [
             ['name' => 'Administration & Executive', 'code' => 'ADMIN', 'sort_order' => 5],
@@ -39,7 +41,7 @@ class CityCareOrganizationSeeder extends Seeder
         ];
 
         foreach ($departments as $definition) {
-            $department = Department::updateOrCreate(
+            $department = Department::firstOrCreate(
                 ['facility_id' => $facility->id, 'code' => $definition['code']],
                 [
                     'name' => $definition['name'],
@@ -60,7 +62,7 @@ class CityCareOrganizationSeeder extends Seeder
                 'STORES' => ['name' => 'Main Stores', 'code' => 'STORES-MAIN', 'type' => 'stores'],
             };
 
-            ServicePoint::updateOrCreate(
+            ServicePoint::firstOrCreate(
                 ['code' => $servicePoint['code']],
                 array_merge($servicePoint, [
                     'department_id' => $department->id,
@@ -78,7 +80,7 @@ class CityCareOrganizationSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            SystemSetting::updateOrCreate(['key' => $setting['key']], $setting);
+            SystemSetting::firstOrCreate(['key' => $setting['key']], $setting);
         }
     }
 }

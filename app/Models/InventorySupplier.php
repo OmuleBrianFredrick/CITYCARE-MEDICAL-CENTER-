@@ -18,6 +18,13 @@ class InventorySupplier extends Model
         return ['is_active' => 'boolean'];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function purchaseOrders(): HasMany { return $this->hasMany(PurchaseOrder::class, 'supplier_id'); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
+
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class, 'supplier_id');
+    }
 }

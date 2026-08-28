@@ -18,9 +18,28 @@ class InventoryItem extends Model
         return ['reorder_level' => 'decimal:3', 'is_active' => 'boolean'];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function stockBalances(): HasMany { return $this->hasMany(InventoryStockBalance::class); }
-    public function stockMovements(): HasMany { return $this->hasMany(InventoryStockMovement::class); }
-    public function purchaseOrderItems(): HasMany { return $this->hasMany(PurchaseOrderItem::class); }
-    public function goodsReceiptItems(): HasMany { return $this->hasMany(GoodsReceiptItem::class); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
+
+    public function stockBalances(): HasMany
+    {
+        return $this->hasMany(InventoryStockBalance::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(InventoryStockMovement::class);
+    }
+
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function goodsReceiptItems(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptItem::class);
+    }
 }

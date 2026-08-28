@@ -7,6 +7,7 @@ use App\Models\Facility;
 use App\Models\ReportDefinition;
 use App\Models\ReportRun;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -63,7 +64,7 @@ class ReportingFoundationTest extends TestCase
     {
         $definition = ReportDefinition::factory()->create(['code' => 'clinical-summary']);
 
-        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $this->expectException(UniqueConstraintViolationException::class);
 
         ReportDefinition::factory()->create(['code' => $definition->code]);
     }

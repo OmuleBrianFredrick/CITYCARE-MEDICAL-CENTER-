@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\BillableService;
-use App\Models\Charge;
 use App\Models\ClinicalEncounter;
 use App\Models\Department;
 use App\Models\Facility;

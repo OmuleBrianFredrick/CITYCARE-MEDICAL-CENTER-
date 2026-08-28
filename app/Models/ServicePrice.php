@@ -23,10 +23,28 @@ class ServicePrice extends Model
         ];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function billableService(): BelongsTo { return $this->belongsTo(BillableService::class); }
-    public function charges(): HasMany { return $this->hasMany(Charge::class); }
-    public function invoiceLineItems(): HasMany { return $this->hasMany(InvoiceLineItem::class); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
 
-    public function isActive(): bool { return $this->is_active === true; }
+    public function billableService(): BelongsTo
+    {
+        return $this->belongsTo(BillableService::class);
+    }
+
+    public function charges(): HasMany
+    {
+        return $this->hasMany(Charge::class);
+    }
+
+    public function invoiceLineItems(): HasMany
+    {
+        return $this->hasMany(InvoiceLineItem::class);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->is_active === true;
+    }
 }

@@ -11,7 +11,7 @@ class RequestValidationMassAssignmentSecurityTest extends TestCase
 {
     public function test_appointment_request_excludes_server_managed_fields(): void
     {
-        $request = new StoreAppointmentRequest();
+        $request = new StoreAppointmentRequest;
         $rules = $request->rules();
 
         $this->assertArrayNotHasKey('status', $rules);
@@ -24,17 +24,17 @@ class RequestValidationMassAssignmentSecurityTest extends TestCase
 
     public function test_user_model_does_not_whitelist_last_login_timestamp(): void
     {
-        $this->assertNotContains('last_login_at', (new User())->getFillable());
+        $this->assertNotContains('last_login_at', (new User)->getFillable());
     }
 
     public function test_appointment_request_boundary_is_independent_from_internal_model_fields(): void
     {
-        $fillable = (new Appointment())->getFillable();
+        $fillable = (new Appointment)->getFillable();
 
         $this->assertContains('status', $fillable);
         $this->assertContains('created_by', $fillable);
 
-        $rules = (new StoreAppointmentRequest())->rules();
+        $rules = (new StoreAppointmentRequest)->rules();
 
         $this->assertArrayNotHasKey('status', $rules);
         $this->assertArrayNotHasKey('created_by', $rules);

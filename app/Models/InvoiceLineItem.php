@@ -24,8 +24,23 @@ class InvoiceLineItem extends Model
         ];
     }
 
-    public function invoice(): BelongsTo { return $this->belongsTo(Invoice::class); }
-    public function charge(): BelongsTo { return $this->belongsTo(Charge::class); }
-    public function billableService(): BelongsTo { return $this->belongsTo(BillableService::class); }
-    public function servicePrice(): BelongsTo { return $this->belongsTo(ServicePrice::class); }
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
+    }
+
+    public function charge(): BelongsTo
+    {
+        return $this->belongsTo(Charge::class);
+    }
+
+    public function billableService(): BelongsTo
+    {
+        return $this->belongsTo(BillableService::class);
+    }
+
+    public function servicePrice(): BelongsTo
+    {
+        return $this->belongsTo(ServicePrice::class);
+    }
 }

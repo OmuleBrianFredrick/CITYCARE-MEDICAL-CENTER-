@@ -107,6 +107,7 @@ class ClinicalEncounterServiceTest extends TestCase
         $facility = Facility::factory()->create();
         $department = Department::factory()->create(['facility_id' => $facility->id]);
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
+
         return [$facility, $department, $servicePoint];
     }
 }

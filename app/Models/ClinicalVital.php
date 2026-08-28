@@ -28,6 +28,13 @@ class ClinicalVital extends Model
         ];
     }
 
-    public function encounter(): BelongsTo { return $this->belongsTo(ClinicalEncounter::class); }
-    public function recorder(): BelongsTo { return $this->belongsTo(User::class, 'recorded_by'); }
+    public function encounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
+    }
+
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
 }

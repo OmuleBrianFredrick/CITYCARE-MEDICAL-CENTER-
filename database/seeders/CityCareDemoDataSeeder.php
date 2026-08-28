@@ -36,6 +36,7 @@ use App\Services\PharmacyInventoryDispensingService;
 use App\Services\PharmacyService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class CityCareDemoDataSeeder extends Seeder
 {
@@ -43,13 +44,19 @@ class CityCareDemoDataSeeder extends Seeder
 
     public function run(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            throw ValidationException::withMessages([
+                'environment' => 'CityCare demonstration data may only be seeded in local or testing environments.',
+            ]);
+        }
+
         $this->call([
             CityCareAccessSeeder::class,
             CityCareOrganizationSeeder::class,
             CityCareDemoAccountSeeder::class,
         ]);
 
-        $facility = Facility::query()->where('name', 'CityCare Medical Center')->firstOrFail();
+        $facility = Facility::query()->where('is_active', true)->orderBy('id')->firstOrFail();
         $accounts = $this->accounts();
         $departments = Department::query()->where('facility_id', $facility->id)->get()->keyBy('code');
         $servicePoints = ServicePoint::query()->get()->keyBy('code');

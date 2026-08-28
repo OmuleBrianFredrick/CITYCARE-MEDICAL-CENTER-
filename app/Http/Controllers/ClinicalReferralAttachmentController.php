@@ -9,6 +9,8 @@ use App\Services\ClinicalReferralAttachmentService;
 use App\Services\FacilityAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClinicalReferralAttachmentController extends Controller
 {
@@ -33,5 +35,19 @@ class ClinicalReferralAttachmentController extends Controller
         $this->attachments->delete($attachment);
 
         return back()->with('status', 'Referral attachment deleted successfully.');
+    }
+
+    public function download(Request $request, ClinicalReferralAttachment $attachment): StreamedResponse
+    {
+        $attachment->loadMissing('referral.encounter');
+        $this->facilityAccess->assertEncounterAccessible($request->user(), $attachment->referral->encounter);
+
+        $disk = Storage::disk($attachment->disk);
+        abort_unless($disk->exists($attachment->file_path), 404);
+
+        return $disk->download($attachment->file_path, $attachment->file_name, [
+            'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

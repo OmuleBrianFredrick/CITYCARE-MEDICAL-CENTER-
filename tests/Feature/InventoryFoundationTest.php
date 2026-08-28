@@ -12,6 +12,7 @@ use App\Models\InventorySupplier;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\ServicePoint;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -90,7 +91,7 @@ class InventoryFoundationTest extends TestCase
     public function test_inventory_item_code_and_sku_are_unique_per_facility(): void
     {
         $first = InventoryItem::factory()->create(['code' => 'ITEM-001', 'sku' => 'SKU-001']);
-        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $this->expectException(UniqueConstraintViolationException::class);
         InventoryItem::factory()->create([
             'facility_id' => $first->facility_id,
             'code' => 'ITEM-001',
@@ -107,7 +108,7 @@ class InventoryFoundationTest extends TestCase
             'inventory_item_id' => $item->id,
         ]);
 
-        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $this->expectException(UniqueConstraintViolationException::class);
         InventoryStockBalance::factory()->create([
             'store_id' => $store->id,
             'inventory_item_id' => $item->id,

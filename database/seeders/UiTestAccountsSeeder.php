@@ -12,7 +12,13 @@ class UiTestAccountsSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = env('CITYCARE_TEST_PASSWORD');
+        if (! app()->environment(['local', 'testing'])) {
+            throw ValidationException::withMessages([
+                'environment' => 'CityCare UI test accounts may only be seeded in local or testing environments.',
+            ]);
+        }
+
+        $password = config('citycare.demo_password');
 
         if (! is_string($password) || strlen($password) < 12) {
             throw ValidationException::withMessages([

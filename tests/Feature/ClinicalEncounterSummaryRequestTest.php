@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\ClinicalEncounter;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ClinicalEncounterSummaryRequestTest extends TestCase

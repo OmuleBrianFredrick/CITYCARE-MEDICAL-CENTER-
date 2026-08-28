@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\ClinicalEncounter;
 use App\Models\Medication;
 use App\Models\MedicationDispensing;
-use App\Models\MedicationDispensingItem;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\User;
@@ -169,6 +168,7 @@ class PharmacyService
         return DB::transaction(function () use ($prescription): Prescription {
             $prescription->items()->whereNotIn('status', [PrescriptionItem::STATUS_DISPENSED, PrescriptionItem::STATUS_CANCELLED])->update(['status' => PrescriptionItem::STATUS_CANCELLED]);
             $prescription->update(['status' => Prescription::STATUS_CANCELLED, 'cancelled_at' => now()]);
+
             return $prescription->fresh('items');
         });
     }

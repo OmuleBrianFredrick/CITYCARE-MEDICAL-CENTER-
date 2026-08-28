@@ -26,17 +26,7 @@ class CityCareDemoDataSeederTest extends TestCase
     {
         parent::setUp();
 
-        putenv('CITYCARE_TEST_PASSWORD='.self::BASE_PASSWORD);
-        $_ENV['CITYCARE_TEST_PASSWORD'] = self::BASE_PASSWORD;
-        $_SERVER['CITYCARE_TEST_PASSWORD'] = self::BASE_PASSWORD;
-    }
-
-    protected function tearDown(): void
-    {
-        putenv('CITYCARE_TEST_PASSWORD');
-        unset($_ENV['CITYCARE_TEST_PASSWORD'], $_SERVER['CITYCARE_TEST_PASSWORD']);
-
-        parent::tearDown();
+        config()->set('citycare.demo_password', self::BASE_PASSWORD);
     }
 
     public function test_it_creates_an_idempotent_cross_role_demo_environment(): void

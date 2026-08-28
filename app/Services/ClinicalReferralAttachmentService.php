@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ClinicalReferralAttachmentService
 {
@@ -19,21 +20,38 @@ class ClinicalReferralAttachmentService
             ]);
         }
 
-        // Clinical referral attachments can contain protected health information.
-        // Keep them on Laravel's private local disk rather than the public disk,
-        // so possession of a predictable storage URL cannot expose patient files.
-        $disk = 'local';
+        $disk = (string) config('citycare.clinical_attachments_disk', 'local');
+        $diskConfiguration = config('filesystems.disks.'.$disk);
+
+        if ($disk === '' || ! is_array($diskConfiguration) || $disk === 'public' || ($diskConfiguration['visibility'] ?? null) === 'public') {
+            throw ValidationException::withMessages([
+                'file' => 'Clinical referral storage must use a configured private filesystem disk.',
+            ]);
+        }
+
         $path = $file->store('clinical-referrals/'.$referral->id, $disk);
 
-        return ClinicalReferralAttachment::create([
-            'clinical_referral_id' => $referral->id,
-            'uploaded_by' => $uploader->id,
-            'disk' => $disk,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
-        ]);
+        if (! is_string($path) || $path === '') {
+            throw ValidationException::withMessages([
+                'file' => 'The referral attachment could not be stored. Please try again or contact an administrator.',
+            ]);
+        }
+
+        try {
+            return ClinicalReferralAttachment::create([
+                'clinical_referral_id' => $referral->id,
+                'uploaded_by' => $uploader->id,
+                'disk' => $disk,
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'file_size' => $file->getSize(),
+            ]);
+        } catch (Throwable $exception) {
+            Storage::disk($disk)->delete($path);
+
+            throw $exception;
+        }
     }
 
     public function delete(ClinicalReferralAttachment $attachment): void

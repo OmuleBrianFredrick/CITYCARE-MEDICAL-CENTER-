@@ -8,7 +8,8 @@ The project was developed as a project-based academic submission and has been ta
 
 - Laravel 13.26.1
 - PHP 8.3+
-- MySQL
+- MySQL 8-compatible database
+- Node.js 22.13 through 22.x for reproducible frontend builds
 - Blade server-rendered UI
 - Laravel sessions, cache, queues, validation and middleware
 - Eloquent ORM and migrations
@@ -94,15 +95,27 @@ The application is organised around role-appropriate workflows so users are gran
 - Report run lifecycle
 - CSV export workflow
 - Facility and date scoped reporting
-- Audit log viewing
+- Permission-derived report availability
+- Facility-scoped audit review and super-administrator organization-wide filtering
 
 ### Administration and Organisation
 
 - Facility configuration
 - Departments
 - Service points
-- System settings
-- Organisation administration permissions
+- Typed global system settings
+- Facility-scoped staff accounts and one-time invitation/setup links
+- Staff activation, deactivation, role assignment, invitation reissue and revocation
+- Protected role and permission administration
+- Responsive administration workspaces
+
+### Patient Portal and Notifications
+
+- Controlled patient-account provisioning and activation
+- Patient-only appointments, released results, invoices, payments and notifications
+- Read/unread notification management
+- Appointment, laboratory, invoice and payment lifecycle notifications
+- Idempotent hourly appointment reminders
 
 ## 4. Authentication and Authorization
 
@@ -118,6 +131,8 @@ Key controls include:
 - Permission-based route protection
 - Facility-level access checks for protected operational data
 - Controlled staff invitation lifecycle
+- One-time staff-selected passwords rather than administrator-assigned credentials
+- Facility-scoped audit events for administrative changes
 
 The implementation distinguishes authentication from authorization. Protected routes are checked through middleware and permission boundaries rather than being secured only by hiding interface elements.
 
@@ -181,9 +196,9 @@ The interface follows a consistent medical-centre visual direction using:
 - Tables, cards, forms and status indicators
 - Separate internal and patient-facing workflow concepts
 
-The application includes a responsive login, a shared permission-aware workspace shell, and a data-backed command-center dashboard alongside the operational workspaces for the implemented modules.
+The application includes a responsive login, shared permission-aware workspace shell, data-backed command-center dashboard, and completed role workspaces for reception, clinical care, laboratory, pharmacy, billing, inventory, reporting, audit, staff/access control, organization administration, and the patient portal.
 
-The next validation stage is local browser and user-journey testing on the actual interface.
+Formal browser/user-journey acceptance remains the final manual validation stage; use [`docs/UAT_CHECKLIST.md`](docs/UAT_CHECKLIST.md).
 
 ## 11. Security and Reliability Hardening
 
@@ -210,16 +225,16 @@ Reliability work included:
 
 Automated testing is layered across unit, feature, database-integrity, authorization, lifecycle and transactional behaviour.
 
-The historical main-branch hardening baseline was 252 passing tests and 953 assertions. The current production-development increment was validated locally after adding the command-center workspace, AJAX patient search, and CI configuration.
+The historical main-branch hardening baseline was 252 passing tests and 953 assertions. The current production-development increment has since completed the operational role workspaces, patient portal, notifications, reporting, audit, staff/access control, organization administration, facility hardening, and release-safety coverage.
 
 **Latest local result:**
 
-- **258 tests passed**
-- **989 assertions**
+- **353 tests passed**
+- **1,658 assertions**
 - **0 failures**
 - **0 errors**
 
-The repository also has a GitHub Actions workflow that installs dependencies, builds frontend assets, and runs the PHP suite on pushes and pull requests. It will provide its first hosted verification after this work is committed and pushed.
+GitHub Actions validates Composer metadata and advisories, npm advisories, Pint formatting, the frontend production build, a clean MySQL migration/seed, Laravel caches and scheduler discovery, and the full PHP suite on pushes and pull requests.
 
 Automated tests establish the current regression baseline, but they do not replace browser-based usability and visual testing.
 
@@ -236,20 +251,20 @@ The examination brief also requires project documentation including setup steps,
 ## 14. Local Setup
 
 1. Clone the repository.
-2. Install PHP dependencies:
+2. Install PHP dependencies with PHP 8.3+ and Composer 2:
 
 ```bash
 composer install
 ```
 
-3. Install and build frontend assets:
+3. With Node.js 22.13 through 22.x, install and build frontend assets:
 
 ```bash
 npm ci
 npm run build
 ```
 
-4. Create `.env` from `.env.example` and configure local database credentials. The example intentionally leaves `CITYCARE_ADMIN_EMAIL`, `CITYCARE_ADMIN_PASSWORD`, and `CITYCARE_TEST_PASSWORD` blank. Add only local, non-production values to your untracked `.env` when you need either optional seeder.
+4. Create `.env` from `.env.example` and configure local database credentials. The example intentionally leaves `CITYCARE_ADMIN_EMAIL`, `CITYCARE_ADMIN_PASSWORD`, and `CITYCARE_TEST_PASSWORD` blank. For a first real deployment, the first two values can provision a one-time bootstrap administrator; remove them after verifying the account. `CITYCARE_TEST_PASSWORD` is strictly for local/testing demo seeders.
 5. Generate the application key:
 
 ```bash
@@ -257,7 +272,7 @@ php artisan key:generate
 ```
 
 6. Create the MySQL database `citycare_medical_center`.
-7. Run migrations and seed data as appropriate:
+7. Run migrations. Run the base seeder once when provisioning roles, the organization foundation, and the optional bootstrap administrator:
 
 ```bash
 php artisan migrate
@@ -272,7 +287,7 @@ php artisan db:seed --class=CityCareDemoDataSeeder
 
 Each role receives a distinct password derived from the local base value. See [`docs/UI_TEST_ACCOUNTS.md`](docs/UI_TEST_ACCOUNTS.md) for the account list and [`docs/DEMO_WORKFLOW.md`](docs/DEMO_WORKFLOW.md) for the cross-role scenarios. Do not place real credentials in `.env.example` or source control.
 
-8. Create the public storage link:
+8. Create the public storage link only if deliberately public uploads are introduced:
 
 ```bash
 php artisan storage:link
@@ -296,6 +311,8 @@ php artisan test
 php artisan serve
 ```
 
+Production setup, scheduler, secure storage, backup, health, and rollback procedures are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## 15. Development and Submission Notes
 
 - Do not commit `.env` or other secret-bearing local configuration.
@@ -303,10 +320,10 @@ php artisan serve
 - Keep generated dependencies and build artefacts out of source control unless explicitly required.
 - Use feature branches for material changes and verify the branch before merging to `main`.
 - Keep automated tests green before advancing between major project checkpoints.
-- Complete browser and user-journey testing before final academic packaging.
+- Complete [`docs/UAT_CHECKLIST.md`](docs/UAT_CHECKLIST.md) before final academic packaging.
 
 ## 16. Project Status
 
-**Current status: the core backend foundation is in place, the dashboard is now permission-aware and data-backed, and the appointment patient-search API/AJAX enhancement is implemented.**
+**Current status: all production-plan application modules and role workspaces are implemented, facility-scoped and covered by automated regression tests; the protected appointment patient-search API/AJAX workflow, administration, patient portal, notifications, reporting, audit, and release pipeline are included.**
 
-Role-workspace completion and browser/user-journey acceptance remain the next validation stages. GitHub Actions verifies dependency installation, frontend builds, and the PHP test suite on pushes and pull requests.
+Manual browser/user-journey acceptance is intentionally the remaining sign-off stage and will be performed using the supplied UAT checklist. GitHub Actions provides MySQL-backed clean-install and automated release verification on pushes and pull requests.

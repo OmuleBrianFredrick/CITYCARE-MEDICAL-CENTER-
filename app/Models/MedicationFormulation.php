@@ -14,5 +14,8 @@ class MedicationFormulation extends Model
 
     protected $casts = ['is_active' => 'boolean'];
 
-    public function medication(): BelongsTo { return $this->belongsTo(Medication::class); }
+    public function medication(): BelongsTo
+    {
+        return $this->belongsTo(Medication::class);
+    }
 }
