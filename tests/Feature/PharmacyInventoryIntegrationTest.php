@@ -10,8 +10,6 @@ use App\Models\InventoryStore;
 use App\Models\Medication;
 use App\Models\MedicationFormulation;
 use App\Models\Patient;
-use App\Models\Prescription;
-use App\Models\PrescriptionItem;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\PharmacyInventoryService;

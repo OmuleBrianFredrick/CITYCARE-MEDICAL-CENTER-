@@ -7,7 +7,6 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\EmployeeInvitationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 

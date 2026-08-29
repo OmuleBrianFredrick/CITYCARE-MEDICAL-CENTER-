@@ -6,8 +6,8 @@ use App\Models\ClinicalEncounter;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalVital;
 use App\Models\User;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ClinicalCareService
 {

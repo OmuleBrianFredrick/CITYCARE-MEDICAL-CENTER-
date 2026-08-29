@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
+use App\Models\Facility;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptItem;
 use App\Models\InventoryItem;
 use App\Models\InventoryStockBalance;
 use App\Models\InventoryStore;
 use App\Models\InventorySupplier;
+use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\InventoryProcurementService;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -66,11 +69,13 @@ class DataIntegrityAtomicityReliabilityTest extends TestCase
 
     private function context(): array
     {
-        $facility = \App\Models\Facility::factory()->create();
+        $facility = Facility::factory()->create();
         $staff = User::factory()->create([
             'user_type' => 'staff',
             'is_active' => true,
         ]);
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::create(['user_id' => $staff->id, 'department_id' => $department->id]);
         $store = InventoryStore::factory()->create([
             'facility_id' => $facility->id,
             'is_active' => true,

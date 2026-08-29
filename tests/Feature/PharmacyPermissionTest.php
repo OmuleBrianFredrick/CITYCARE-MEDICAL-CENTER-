@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,7 +13,7 @@ class PharmacyPermissionTest extends TestCase
 
     public function test_pharmacy_permission_matrix_is_seeded_correctly(): void
     {
-        $this->seed(\Database\Seeders\CityCareAccessSeeder::class);
+        $this->seed(CityCareAccessSeeder::class);
 
         $expectedPermissions = [
             'pharmacy.view',

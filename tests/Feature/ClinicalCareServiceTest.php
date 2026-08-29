@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicalEncounter;
-use App\Models\ClinicalNote;
-use App\Models\ClinicalVital;
 use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Patient;

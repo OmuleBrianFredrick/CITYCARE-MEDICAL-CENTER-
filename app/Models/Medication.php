@@ -15,7 +15,18 @@ class Medication extends Model
 
     protected $casts = ['is_active' => 'boolean'];
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function formulations(): HasMany { return $this->hasMany(MedicationFormulation::class); }
-    public function prescriptionItems(): HasMany { return $this->hasMany(PrescriptionItem::class); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
+
+    public function formulations(): HasMany
+    {
+        return $this->hasMany(MedicationFormulation::class);
+    }
+
+    public function prescriptionItems(): HasMany
+    {
+        return $this->hasMany(PrescriptionItem::class);
+    }
 }

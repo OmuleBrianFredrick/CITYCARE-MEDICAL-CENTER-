@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ClinicalEncounter;
 use App\Models\ClinicalTreatmentPlan;
 use App\Models\User;
 use App\Services\ClinicalTreatmentPlanService;
@@ -23,7 +24,7 @@ class ClinicalTreatmentPlanServiceTest extends TestCase
             'is_active' => true,
             'password' => Hash::make('Password123!'),
         ]);
-        $encounter = \App\Models\ClinicalEncounter::factory()->create(['status' => \App\Models\ClinicalEncounter::STATUS_OPEN]);
+        $encounter = ClinicalEncounter::factory()->create(['status' => ClinicalEncounter::STATUS_OPEN]);
 
         $plan = $service->create($encounter, $author, [
             'plan' => 'Start treatment and review in 7 days.',
@@ -39,7 +40,7 @@ class ClinicalTreatmentPlanServiceTest extends TestCase
     {
         $service = app(ClinicalTreatmentPlanService::class);
         $author = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-        $encounter = \App\Models\ClinicalEncounter::factory()->create(['status' => \App\Models\ClinicalEncounter::STATUS_CLOSED]);
+        $encounter = ClinicalEncounter::factory()->create(['status' => ClinicalEncounter::STATUS_CLOSED]);
 
         $this->expectException(ValidationException::class);
         $service->create($encounter, $author, ['plan' => 'Should fail.']);
@@ -49,7 +50,7 @@ class ClinicalTreatmentPlanServiceTest extends TestCase
     {
         $service = app(ClinicalTreatmentPlanService::class);
         $author = User::factory()->create(['user_type' => 'staff', 'is_active' => false]);
-        $encounter = \App\Models\ClinicalEncounter::factory()->create();
+        $encounter = ClinicalEncounter::factory()->create();
 
         $this->expectException(ValidationException::class);
         $service->create($encounter, $author, ['plan' => 'Should fail.']);

@@ -20,12 +20,13 @@ class ClinicalEncounterController extends Controller
     public function __construct(
         private readonly ClinicalEncounterService $encounters,
         private readonly FacilityAccessService $facilityAccess,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): View
     {
+        $facility = $this->facilityAccess->currentFacility($request->user());
         $encounters = ClinicalEncounter::query()
+            ->where('facility_id', $facility->id)
             ->with(['patient', 'appointment', 'department', 'servicePoint', 'clinician'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -42,20 +43,50 @@ class ClinicalEncounterController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('encounters.index', compact('encounters'));
+        $checkedInAppointments = collect();
+        if ($request->user()?->hasPermissionTo('clinical.encounters.create')) {
+            $checkedInAppointments = Appointment::query()
+                ->with(['patient', 'department', 'servicePoint'])
+                ->where('facility_id', $facility->id)
+                ->where('status', Appointment::STATUS_CHECKED_IN)
+                ->whereDoesntHave('clinicalEncounter')
+                ->where(function ($query) use ($request) {
+                    $query->whereNull('provider_id')
+                        ->orWhere('provider_id', $request->user()->id);
+                })
+                ->orderBy('checked_in_at')
+                ->limit(10)
+                ->get();
+        }
+
+        return view('encounters.index', compact('encounters', 'checkedInAppointments'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $appointments = Appointment::query()->with(['patient', 'department', 'servicePoint', 'provider'])->where('status', Appointment::STATUS_CHECKED_IN)->orderBy('scheduled_start')->get();
+        $facility = $this->facilityAccess->currentFacility($request->user());
+        $appointments = Appointment::query()
+            ->with(['patient', 'department', 'servicePoint', 'provider'])
+            ->where('facility_id', $facility->id)
+            ->where('status', Appointment::STATUS_CHECKED_IN)
+            ->whereDoesntHave('clinicalEncounter')
+            ->where(function ($query) use ($request) {
+                $query->whereNull('provider_id')
+                    ->orWhere('provider_id', $request->user()->id);
+            })
+            ->orderBy('scheduled_start')
+            ->get();
 
-        return view('encounters.create', compact('appointments'));
+        $selectedAppointmentId = old('appointment_id', $request->input('appointment_id'));
+
+        return view('encounters.create', compact('appointments', 'selectedAppointmentId'));
     }
 
     public function store(StoreClinicalEncounterRequest $request): RedirectResponse
     {
         $appointment = Appointment::query()->with('patient')->findOrFail($request->integer('appointment_id'));
-        $encounter = $this->encounters->open($appointment, $request->user());
+        $this->facilityAccess->assertFacilityAccessible($request->user(), $appointment->facility_id);
+        $encounter = $this->encounters->open($appointment, $request->user(), $request->validated());
 
         return redirect()->route('encounters.show', $encounter)->with('status', "Encounter {$encounter->encounter_number} opened successfully.");
     }
@@ -137,13 +168,15 @@ class ClinicalEncounterController extends Controller
 
     public function close(StoreClinicalEncounterSummaryRequest $request, ClinicalEncounter $encounter): RedirectResponse
     {
+        $this->facilityAccess->assertEncounterAccessible($request->user(), $encounter);
         $this->encounters->close($encounter, $request->validated('summary'));
 
         return back()->with('status', "Encounter {$encounter->encounter_number} closed successfully.");
     }
 
-    public function cancel(ClinicalEncounter $encounter): RedirectResponse
+    public function cancel(Request $request, ClinicalEncounter $encounter): RedirectResponse
     {
+        $this->facilityAccess->assertEncounterAccessible($request->user(), $encounter);
         $this->encounters->cancel($encounter);
 
         return back()->with('status', "Encounter {$encounter->encounter_number} cancelled.");

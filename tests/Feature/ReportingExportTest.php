@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\ReportDefinition;
 use App\Models\ReportRun;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use App\Services\ReportExportService;
 use Database\Seeders\CityCareAccessSeeder;
@@ -23,6 +25,8 @@ class ReportingExportTest extends TestCase
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $staff->roles()->sync([Role::where('slug', 'administrator')->value('id')]);
         $facility = Facility::factory()->create();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        StaffProfile::create(['user_id' => $staff->id, 'department_id' => $department->id]);
         $definition = ReportDefinition::factory()->create(['code' => 'clinical_activity']);
         $run = ReportRun::factory()->create([
             'report_definition_id' => $definition->id,
@@ -36,7 +40,7 @@ class ReportingExportTest extends TestCase
             ],
         ]);
 
-        $response = app(ReportExportService::class)->csv($run);
+        $response = app(ReportExportService::class)->csv($staff, $run);
         $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
         $this->assertSame('attachment; filename=report-'.$run->id.'.csv', $response->headers->get('Content-Disposition'));
 
@@ -62,6 +66,44 @@ class ReportingExportTest extends TestCase
         $this->actingAs($staff)
             ->post(route('reports.export'), ['format' => 'csv', 'report_run' => $run->id])
             ->assertForbidden();
+    }
+
+    public function test_csv_export_neutralizes_spreadsheet_formula_values(): void
+    {
+        $this->seed(CityCareAccessSeeder::class);
+        $facility = Facility::factory()->create();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
+        $staff = User::factory()->create([
+            'name' => '=2+3',
+            'user_type' => 'staff',
+            'is_active' => true,
+        ]);
+        $staff->roles()->sync([Role::where('slug', 'administrator')->value('id')]);
+        StaffProfile::create(['user_id' => $staff->id, 'department_id' => $department->id]);
+        $definition = ReportDefinition::factory()->create([
+            'code' => 'clinical_activity',
+            'name' => '@Unsafe report name',
+            'category' => 'clinical',
+        ]);
+        $run = ReportRun::factory()->create([
+            'report_definition_id' => $definition->id,
+            'requested_by_id' => $staff->id,
+            'facility_id' => $facility->id,
+            'status' => ReportRun::STATUS_COMPLETED,
+            'result_metadata' => ['unsafe_value' => '+SUM(A1:A2)'],
+        ]);
+
+        $response = app(ReportExportService::class)->csv($staff, $run);
+        $callback = $response->getCallback();
+        ob_start();
+        $callback();
+        $csv = ob_get_clean();
+
+        $this->assertStringContainsString("'@Unsafe report name", $csv);
+        $this->assertStringContainsString("'=2+3", $csv);
+        $this->assertStringContainsString("'+SUM(A1:A2)", $csv);
+        $this->assertStringNotContainsString(',=2+3', $csv);
+        $this->assertStringNotContainsString(',+SUM(A1:A2)', $csv);
     }
 
     public function test_export_rejects_unknown_format_before_service_execution(): void

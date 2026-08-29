@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditEvent;
 use App\Models\Facility;
 use App\Models\User;
 use App\Services\AuditLogService;

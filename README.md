@@ -8,7 +8,8 @@ The project was developed as a project-based academic submission and has been ta
 
 - Laravel 13.26.1
 - PHP 8.3+
-- MySQL
+- MySQL 8-compatible database
+- Node.js 22.13 through 22.x for reproducible frontend builds
 - Blade server-rendered UI
 - Laravel sessions, cache, queues, validation and middleware
 - Eloquent ORM and migrations
@@ -94,15 +95,27 @@ The application is organised around role-appropriate workflows so users are gran
 - Report run lifecycle
 - CSV export workflow
 - Facility and date scoped reporting
-- Audit log viewing
+- Permission-derived report availability
+- Facility-scoped audit review and super-administrator organization-wide filtering
 
 ### Administration and Organisation
 
 - Facility configuration
 - Departments
 - Service points
-- System settings
-- Organisation administration permissions
+- Typed global system settings
+- Facility-scoped staff accounts and one-time invitation/setup links
+- Staff activation, deactivation, role assignment, invitation reissue and revocation
+- Protected role and permission administration
+- Responsive administration workspaces
+
+### Patient Portal and Notifications
+
+- Controlled patient-account provisioning and activation
+- Patient-only appointments, released results, invoices, payments and notifications
+- Read/unread notification management
+- Appointment, laboratory, invoice and payment lifecycle notifications
+- Idempotent hourly appointment reminders
 
 ## 4. Authentication and Authorization
 
@@ -118,6 +131,8 @@ Key controls include:
 - Permission-based route protection
 - Facility-level access checks for protected operational data
 - Controlled staff invitation lifecycle
+- One-time staff-selected passwords rather than administrator-assigned credentials
+- Facility-scoped audit events for administrative changes
 
 The implementation distinguishes authentication from authorization. Protected routes are checked through middleware and permission boundaries rather than being secured only by hiding interface elements.
 
@@ -164,11 +179,11 @@ Operational lists support search and filtering where the underlying workflow req
 
 Reporting functionality includes report execution, run tracking and CSV export. Reports are constrained by operational scope so sensitive information is not treated as globally visible data.
 
-## 9. API / AJAX Requirement Review
+## 9. API / AJAX Enhancement
 
-The academic brief requires at least one JSON API or AJAX-based enhancement, such as dynamic appointment-slot loading, instant patient search, or doctor availability checking. A repository review did not identify a dedicated `/api` route or an obvious AJAX/JSON workflow in `routes/web.php`.
+The appointment workflow includes an authenticated JSON patient-search enhancement at `GET /patients/search`. It is protected by the existing `patients.view` permission, validates the query, limits results to active patients in the active facility, and returns structured `data` and `meta` fields.
 
-This requirement is therefore **not claimed as completed in this documentation**. It should be confirmed during browser/UI testing against any existing JavaScript interactions, or implemented explicitly if the final submission requires a demonstrable API/AJAX feature.
+The appointment form uses this endpoint after the user enters at least two characters, then presents the matching patient records in the actual appointment `patient_id` selector. This keeps the feature connected to a real browser workflow rather than exposing a standalone demonstration endpoint. Automated feature tests cover successful search, inactive-record exclusion, permission denial, and invalid input. Browser acceptance testing remains required before release.
 
 ## 10. UI and UX Direction
 
@@ -181,9 +196,9 @@ The interface follows a consistent medical-centre visual direction using:
 - Tables, cards, forms and status indicators
 - Separate internal and patient-facing workflow concepts
 
-The application includes a responsive login and authenticated dashboard foundation together with operational workspaces for the implemented modules.
+The application includes a responsive login, shared permission-aware workspace shell, data-backed command-center dashboard, and completed role workspaces for reception, clinical care, laboratory, pharmacy, billing, inventory, reporting, audit, staff/access control, organization administration, and the patient portal.
 
-The next validation stage is local browser and user-journey testing on the actual interface.
+Formal browser/user-journey acceptance remains the final manual validation stage; use [`docs/UAT_CHECKLIST.md`](docs/UAT_CHECKLIST.md).
 
 ## 11. Security and Reliability Hardening
 
@@ -210,16 +225,16 @@ Reliability work included:
 
 Automated testing is layered across unit, feature, database-integrity, authorization, lifecycle and transactional behaviour.
 
-The final Phase 14 regression was executed on `main` after the hardening branches were merged.
+The historical main-branch hardening baseline was 252 passing tests and 953 assertions. The current production-development increment has since completed the operational role workspaces, patient portal, notifications, reporting, audit, staff/access control, organization administration, facility hardening, and release-safety coverage.
 
-**Final result:**
+**Latest local result:**
 
-- **252 tests passed**
-- **953 assertions**
+- **353 tests passed**
+- **1,658 assertions**
 - **0 failures**
 - **0 errors**
 
-The application was also checked after cache clearing and migration verification. No pending migrations remained at the final verification point.
+GitHub Actions validates Composer metadata and advisories, npm advisories, Pint formatting, the frontend production build, a clean MySQL migration/seed, Laravel caches and scheduler discovery, and the full PHP suite on pushes and pull requests.
 
 Automated tests establish the current regression baseline, but they do not replace browser-based usability and visual testing.
 
@@ -229,57 +244,74 @@ The examination brief for **BCS 3303 Advanced Application Development & Database
 
 The repository demonstrates substantial coverage of these areas, including the application foundation, Blade-based interface, patient and appointment workflows, clinical operations, billing, pharmacy, laboratory, inventory, reporting, authentication, permissions, database relationships and project documentation.
 
-The **API/AJAX requirement remains the principal item that should not be represented as completed without additional evidence**. This README deliberately records that limitation instead of overstating compliance.
+The API/AJAX requirement is implemented through the protected appointment patient-search workflow described above. Final browser acceptance remains the evidence required before it is represented as release-ready.
 
 The examination brief also requires project documentation including setup steps, major features and screenshots or a brief description of system modules. This README supplies setup guidance and module descriptions. Screenshots can be added after the browser-testing stage if required for the final academic submission package.
 
 ## 14. Local Setup
 
 1. Clone the repository.
-2. Install PHP dependencies:
+2. Install PHP dependencies with PHP 8.3+ and Composer 2:
 
 ```bash
 composer install
 ```
 
-3. Create `.env` from `.env.example` and configure local database credentials.
-4. Generate the application key:
+3. With Node.js 22.13 through 22.x, install and build frontend assets:
+
+```bash
+npm ci
+npm run build
+```
+
+4. Create `.env` from `.env.example` and configure local database credentials. The example intentionally leaves `CITYCARE_ADMIN_EMAIL`, `CITYCARE_ADMIN_PASSWORD`, and `CITYCARE_TEST_PASSWORD` blank. For a first real deployment, the first two values can provision a one-time bootstrap administrator; remove them after verifying the account. `CITYCARE_TEST_PASSWORD` is strictly for local/testing demo seeders.
+5. Generate the application key:
 
 ```bash
 php artisan key:generate
 ```
 
-5. Create the MySQL database `citycare_medical_center`.
-6. Run migrations and seed data as appropriate:
+6. Create the MySQL database `citycare_medical_center`.
+7. Run migrations. Run the base seeder once when provisioning roles, the organization foundation, and the optional bootstrap administrator:
 
 ```bash
 php artisan migrate
 php artisan db:seed
 ```
 
-7. Create the public storage link:
+For safe local role/UI testing, set a local `CITYCARE_TEST_PASSWORD` (at least 12 characters) and seed the complete idempotent `.test` demo environment:
+
+```bash
+php artisan db:seed --class=CityCareDemoDataSeeder
+```
+
+Each role receives a distinct password derived from the local base value. See [`docs/UI_TEST_ACCOUNTS.md`](docs/UI_TEST_ACCOUNTS.md) for the account list and [`docs/DEMO_WORKFLOW.md`](docs/DEMO_WORKFLOW.md) for the cross-role scenarios. Do not place real credentials in `.env.example` or source control.
+
+8. Create the public storage link only if deliberately public uploads are introduced:
 
 ```bash
 php artisan storage:link
 ```
 
-8. Clear application caches when required:
+9. Clear application caches when required:
 
 ```bash
 php artisan optimize:clear
 ```
 
-9. Run automated tests:
+10. Run automated tests:
 
 ```bash
 php artisan test
 ```
 
-10. Start the local application:
+11. Start the local application:
 
 ```bash
 php artisan serve
 ```
+
+Production setup, scheduler, secure storage, backup, health, and rollback procedures are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## 15. Development and Submission Notes
 
@@ -288,10 +320,10 @@ php artisan serve
 - Keep generated dependencies and build artefacts out of source control unless explicitly required.
 - Use feature branches for material changes and verify the branch before merging to `main`.
 - Keep automated tests green before advancing between major project checkpoints.
-- Complete browser and user-journey testing before final academic packaging.
+- Complete [`docs/UAT_CHECKLIST.md`](docs/UAT_CHECKLIST.md) before final academic packaging.
 
 ## 16. Project Status
 
-**Current status: implementation and automated hardening completed; browser/UI testing is the next validation stage.**
+**Current status: all production-plan application modules and role workspaces are implemented, facility-scoped and covered by automated regression tests; the protected appointment patient-search API/AJAX workflow, administration, patient portal, notifications, reporting, audit, and release pipeline are included.**
 
-The `main` branch contains the merged implementation and has passed the final automated regression baseline described above.
+Manual browser/user-journey acceptance is intentionally the remaining sign-off stage and will be performed using the supplied UAT checklist. GitHub Actions provides MySQL-backed clean-install and automated release verification on pushes and pull requests.

@@ -21,7 +21,18 @@ class GoodsReceiptItem extends Model
         ];
     }
 
-    public function goodsReceipt(): BelongsTo { return $this->belongsTo(GoodsReceipt::class); }
-    public function purchaseOrderItem(): BelongsTo { return $this->belongsTo(PurchaseOrderItem::class); }
-    public function inventoryItem(): BelongsTo { return $this->belongsTo(InventoryItem::class); }
+    public function goodsReceipt(): BelongsTo
+    {
+        return $this->belongsTo(GoodsReceipt::class);
+    }
+
+    public function purchaseOrderItem(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
 }

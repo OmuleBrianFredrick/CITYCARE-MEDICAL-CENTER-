@@ -20,8 +20,8 @@ class StoreBillingChargeRequest extends FormRequest
             'discount_amount' => ['nullable', 'numeric', 'gte:0'],
             'adjustment_amount' => ['nullable', 'numeric'],
             'encounter_id' => ['nullable', 'integer', 'exists:clinical_encounters,id'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'idempotency_key' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'idempotency_key' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

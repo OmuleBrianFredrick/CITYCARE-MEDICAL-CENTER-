@@ -9,6 +9,7 @@ use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePoint;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -100,6 +101,13 @@ class ClinicalCareControllerTest extends TestCase
         $facility = Facility::factory()->create();
         $department = Department::factory()->create(['facility_id' => $facility->id]);
         $servicePoint = ServicePoint::factory()->create(['department_id' => $department->id]);
+        StaffProfile::create([
+            'user_id' => $user->id,
+            'department_id' => $department->id,
+            'service_point_id' => $servicePoint->id,
+            'employee_number' => 'CLINICAL-'.$user->id,
+            'employment_status' => 'active',
+        ]);
         $patient = Patient::factory()->create([
             'facility_id' => $facility->id,
             'status' => Patient::STATUS_ACTIVE,

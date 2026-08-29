@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\AuditEvent;
+use App\Models\Department;
 use App\Models\Facility;
 use App\Models\ReportDefinition;
 use App\Models\ReportRun;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,10 +22,12 @@ class ReportingHttpWorkflowTest extends TestCase
     {
         $this->seed(CityCareAccessSeeder::class);
 
+        $facility = Facility::factory()->create();
+        $department = Department::factory()->create(['facility_id' => $facility->id]);
         $staff = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $staff->roles()->sync([Role::where('slug', 'administrator')->value('id')]);
+        StaffProfile::create(['user_id' => $staff->id, 'department_id' => $department->id]);
         $this->assertTrue($staff->fresh()->hasPermissionTo('reports.view'));
-        $facility = Facility::factory()->create();
         $definition = ReportDefinition::factory()->create([
             'code' => 'clinical_activity',
             'category' => 'clinical',

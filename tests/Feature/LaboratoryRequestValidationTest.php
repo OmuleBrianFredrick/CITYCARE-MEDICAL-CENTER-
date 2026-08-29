@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\ClinicalEncounter;
 use App\Models\LaboratoryTest;
 use App\Models\Role;
+use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\LaboratoryOrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -24,6 +26,7 @@ class LaboratoryRequestValidationTest extends TestCase
     {
         $doctor = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($doctor, $encounter);
 
         $this->actingAs($doctor)
             ->post(route('encounters.laboratory-orders.store', $encounter), [])
@@ -34,6 +37,7 @@ class LaboratoryRequestValidationTest extends TestCase
     {
         $doctor = $this->userWithRole('doctor');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($doctor, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
@@ -50,11 +54,12 @@ class LaboratoryRequestValidationTest extends TestCase
     {
         $laboratory = $this->userWithRole('laboratory');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($laboratory, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
         ]);
-        $order = app(\App\Services\LaboratoryOrderService::class)->create($encounter, $laboratory, [
+        $order = app(LaboratoryOrderService::class)->create($encounter, $laboratory, [
             'test_ids' => [$test->id],
         ]);
         $item = $order->items()->firstOrFail();
@@ -68,11 +73,12 @@ class LaboratoryRequestValidationTest extends TestCase
     {
         $laboratory = $this->userWithRole('laboratory');
         $encounter = ClinicalEncounter::factory()->create();
+        $this->assignToEncounter($laboratory, $encounter);
         $test = LaboratoryTest::factory()->create([
             'facility_id' => $encounter->facility_id,
             'is_active' => true,
         ]);
-        $order = app(\App\Services\LaboratoryOrderService::class)->create($encounter, $laboratory, [
+        $order = app(LaboratoryOrderService::class)->create($encounter, $laboratory, [
             'test_ids' => [$test->id],
         ]);
         $item = $order->items()->firstOrFail();
@@ -82,6 +88,14 @@ class LaboratoryRequestValidationTest extends TestCase
                 'result_value' => str_repeat('x', 2001),
             ])
             ->assertSessionHasErrors('result_value');
+    }
+
+    private function assignToEncounter(User $user, ClinicalEncounter $encounter): void
+    {
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $user->id],
+            ['department_id' => $encounter->department_id, 'service_point_id' => $encounter->service_point_id]
+        );
     }
 
     private function userWithRole(string $roleSlug): User

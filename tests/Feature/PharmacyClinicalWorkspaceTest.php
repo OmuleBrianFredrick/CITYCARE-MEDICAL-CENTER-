@@ -7,9 +7,10 @@ use App\Models\Department;
 use App\Models\Facility;
 use App\Models\Medication;
 use App\Models\Patient;
-use App\Models\Prescription;
+use App\Models\Role;
 use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\PharmacyService;
 use Database\Seeders\CityCareAccessSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,7 +25,7 @@ class PharmacyClinicalWorkspaceTest extends TestCase
 
         [$doctor, $encounter, $medication] = $this->workspaceContext('doctor');
 
-        $prescription = app(\App\Services\PharmacyService::class)->prescribe($encounter, $doctor, [
+        $prescription = app(PharmacyService::class)->prescribe($encounter, $doctor, [
             'items' => [[
                 'medication_id' => $medication->id,
                 'quantity' => 10,
@@ -49,7 +50,7 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         $this->seed(CityCareAccessSeeder::class);
 
         [$doctor, $encounter, $medication] = $this->workspaceContext('doctor');
-        app(\App\Services\PharmacyService::class)->prescribe($encounter, $doctor, [
+        app(PharmacyService::class)->prescribe($encounter, $doctor, [
             'items' => [[
                 'medication_id' => $medication->id,
                 'quantity' => 5,
@@ -76,7 +77,7 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         $this->seed(CityCareAccessSeeder::class);
 
         [$doctor, $encounter, $medication] = $this->workspaceContext('doctor');
-        $prescription = app(\App\Services\PharmacyService::class)->prescribe($encounter, $doctor, [
+        $prescription = app(PharmacyService::class)->prescribe($encounter, $doctor, [
             'items' => [[
                 'medication_id' => $medication->id,
                 'quantity' => 10,
@@ -85,7 +86,11 @@ class PharmacyClinicalWorkspaceTest extends TestCase
         ]);
 
         $pharmacy = $this->userWithRole('pharmacy');
-        app(\App\Services\PharmacyService::class)->dispense(
+        StaffProfile::query()->updateOrCreate(
+            ['user_id' => $pharmacy->id],
+            ['department_id' => $doctor->staffProfile->department_id]
+        );
+        app(PharmacyService::class)->dispense(
             $prescription,
             $pharmacy,
             [[
@@ -130,8 +135,9 @@ class PharmacyClinicalWorkspaceTest extends TestCase
     private function userWithRole(string $roleSlug): User
     {
         $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-        $roleId = \App\Models\Role::where('slug', $roleSlug)->valueOrFail('id');
+        $roleId = Role::where('slug', $roleSlug)->valueOrFail('id');
         $user->roles()->attach($roleId);
+
         return $user;
     }
 }

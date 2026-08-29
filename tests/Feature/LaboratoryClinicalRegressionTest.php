@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Appointment;
-use App\Models\ClinicalEncounter;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalVital;
 use App\Models\Department;
@@ -11,7 +10,9 @@ use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\Role;
 use App\Models\ServicePoint;
+use App\Models\StaffProfile;
 use App\Models\User;
+use App\Services\ClinicalEncounterService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -30,7 +31,7 @@ class LaboratoryClinicalRegressionTest extends TestCase
         $clinician = $this->staffWithRole('doctor');
         $facility = Facility::factory()->create();
         $department = Department::factory()->create(['facility_id' => $facility->id]);
-        \App\Models\StaffProfile::query()->updateOrCreate(
+        StaffProfile::query()->updateOrCreate(
             ['user_id' => $clinician->id],
             ['department_id' => $department->id]
         );
@@ -47,7 +48,7 @@ class LaboratoryClinicalRegressionTest extends TestCase
             'provider_id' => $clinician->id,
             'status' => Appointment::STATUS_CHECKED_IN,
         ]);
-        $encounter = app(\App\Services\ClinicalEncounterService::class)->open($appointment, $clinician);
+        $encounter = app(ClinicalEncounterService::class)->open($appointment, $clinician);
 
         ClinicalNote::factory()->create([
             'encounter_id' => $encounter->id,
@@ -70,6 +71,7 @@ class LaboratoryClinicalRegressionTest extends TestCase
     {
         $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+
         return $user;
     }
 }

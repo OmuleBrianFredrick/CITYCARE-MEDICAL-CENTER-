@@ -14,6 +14,13 @@ class MedicationDispensingItem extends Model
 
     protected $casts = ['quantity_dispensed' => 'decimal:3', 'expiry_date' => 'date'];
 
-    public function dispensing(): BelongsTo { return $this->belongsTo(MedicationDispensing::class, 'medication_dispensings_id'); }
-    public function prescriptionItem(): BelongsTo { return $this->belongsTo(PrescriptionItem::class); }
+    public function dispensing(): BelongsTo
+    {
+        return $this->belongsTo(MedicationDispensing::class, 'medication_dispensings_id');
+    }
+
+    public function prescriptionItem(): BelongsTo
+    {
+        return $this->belongsTo(PrescriptionItem::class);
+    }
 }

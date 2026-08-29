@@ -15,7 +15,11 @@ class StorePatientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'facility_id' => ['required', 'integer', 'exists:facilities,id'],
+            'facility_id' => [
+                'required',
+                'integer',
+                Rule::exists('facilities', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
             'first_name' => ['required', 'string', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],

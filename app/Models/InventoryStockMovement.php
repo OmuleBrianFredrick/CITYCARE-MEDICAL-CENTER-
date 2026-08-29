@@ -20,9 +20,28 @@ class InventoryStockMovement extends Model
         ];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function store(): BelongsTo { return $this->belongsTo(InventoryStore::class, 'store_id'); }
-    public function inventoryItem(): BelongsTo { return $this->belongsTo(InventoryItem::class); }
-    public function goodsReceiptItem(): BelongsTo { return $this->belongsTo(GoodsReceiptItem::class); }
-    public function performedBy(): BelongsTo { return $this->belongsTo(User::class, 'performed_by_id'); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(InventoryStore::class, 'store_id');
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function goodsReceiptItem(): BelongsTo
+    {
+        return $this->belongsTo(GoodsReceiptItem::class);
+    }
+
+    public function performedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'performed_by_id');
+    }
 }

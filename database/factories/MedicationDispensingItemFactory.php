@@ -3,10 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\MedicationDispensing;
+use App\Models\MedicationDispensingItem;
 use App\Models\PrescriptionItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/** @extends Factory<\App\Models\MedicationDispensingItem> */
+/** @extends Factory<MedicationDispensingItem> */
 class MedicationDispensingItemFactory extends Factory
 {
     public function definition(): array

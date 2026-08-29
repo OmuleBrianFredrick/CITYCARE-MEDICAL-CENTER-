@@ -18,10 +18,33 @@ class InventoryStore extends Model
         return ['is_active' => 'boolean'];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function servicePoint(): BelongsTo { return $this->belongsTo(ServicePoint::class); }
-    public function stockBalances(): HasMany { return $this->hasMany(InventoryStockBalance::class, 'store_id'); }
-    public function stockMovements(): HasMany { return $this->hasMany(InventoryStockMovement::class, 'store_id'); }
-    public function purchaseOrders(): HasMany { return $this->hasMany(PurchaseOrder::class, 'store_id'); }
-    public function goodsReceipts(): HasMany { return $this->hasMany(GoodsReceipt::class, 'store_id'); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
+
+    public function servicePoint(): BelongsTo
+    {
+        return $this->belongsTo(ServicePoint::class);
+    }
+
+    public function stockBalances(): HasMany
+    {
+        return $this->hasMany(InventoryStockBalance::class, 'store_id');
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(InventoryStockMovement::class, 'store_id');
+    }
+
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class, 'store_id');
+    }
+
+    public function goodsReceipts(): HasMany
+    {
+        return $this->hasMany(GoodsReceipt::class, 'store_id');
+    }
 }

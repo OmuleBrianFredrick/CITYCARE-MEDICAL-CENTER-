@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Patient;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +36,14 @@ class PatientPortalService
                 'user_type' => 'patient',
                 'is_active' => false,
             ]);
+
+            $patientRoleId = Role::query()->where('slug', 'patient')->value('id');
+
+            if ($patientRoleId === null) {
+                throw new RuntimeException('The patient portal role is not configured.');
+            }
+
+            $user->roles()->attach($patientRoleId);
 
             $patient->forceFill([
                 'user_id' => $user->id,

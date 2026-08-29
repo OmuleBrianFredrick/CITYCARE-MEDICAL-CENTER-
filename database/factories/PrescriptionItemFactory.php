@@ -5,9 +5,10 @@ namespace Database\Factories;
 use App\Models\Medication;
 use App\Models\MedicationFormulation;
 use App\Models\Prescription;
+use App\Models\PrescriptionItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/** @extends Factory<\App\Models\PrescriptionItem> */
+/** @extends Factory<PrescriptionItem> */
 class PrescriptionItemFactory extends Factory
 {
     public function definition(): array

@@ -57,6 +57,14 @@ class RouteAuthorizationLeastPrivilegeTest extends TestCase
 
     private function isPublicEntryPoint(?string $name): bool
     {
-        return in_array($name, ['home', 'login', 'login.store'], true);
+        return in_array($name, [
+            'home',
+            'login',
+            'login.store',
+            'portal.activation.create',
+            'portal.activation.store',
+            'staff-invitations.accept.create',
+            'staff-invitations.accept.store',
+        ], true);
     }
 }

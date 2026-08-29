@@ -4,10 +4,11 @@ namespace Database\Factories;
 
 use App\Models\ClinicalEncounter;
 use App\Models\Patient;
+use App\Models\Prescription;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/** @extends Factory<\App\Models\Prescription> */
+/** @extends Factory<Prescription> */
 class PrescriptionFactory extends Factory
 {
     public function definition(): array

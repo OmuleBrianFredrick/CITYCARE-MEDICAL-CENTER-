@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\GoodsReceipt;
 use App\Models\InventoryItem;
 use App\Models\InventoryStockBalance;
 use App\Models\InventoryStockMovement;
@@ -93,7 +92,14 @@ class PharmacyInventoryDispensingService
                     throw ValidationException::withMessages(["items.{$index}.quantity_dispensed" => 'Insufficient available inventory for the requested dispensing quantity.']);
                 }
 
-                $stockBalances[] = [$prescriptionItem, $inventoryItem, $balance, $quantity];
+                $stockBalances[] = [
+                    $prescriptionItem,
+                    $inventoryItem,
+                    $balance,
+                    $quantity,
+                    $item['batch_number'] ?? null,
+                    $item['expiry_date'] ?? null,
+                ];
             }
 
             $dispensing = MedicationDispensing::create([
@@ -107,12 +113,12 @@ class PharmacyInventoryDispensingService
                 'dispensed_at' => now(),
             ]);
 
-            foreach ($stockBalances as [$prescriptionItem, $inventoryItem, $balance, $quantity]) {
+            foreach ($stockBalances as [$prescriptionItem, $inventoryItem, $balance, $quantity, $batchNumber, $expiryDate]) {
                 $dispensingItem = $dispensing->items()->create([
                     'prescription_item_id' => $prescriptionItem->id,
                     'quantity_dispensed' => $quantity,
-                    'batch_number' => null,
-                    'expiry_date' => null,
+                    'batch_number' => $batchNumber,
+                    'expiry_date' => $expiryDate,
                 ]);
 
                 $newOnHand = round((float) $balance->quantity_on_hand - $quantity, 3);

@@ -100,6 +100,45 @@ class PatientControllerTest extends TestCase
             ->assertOk()->assertSee($patient->medical_record_number);
     }
 
+    public function test_patient_registry_json_search_and_registration_are_limited_to_the_staff_facility(): void
+    {
+        $staff = $this->staffWithRole('receptionist');
+        $ownFacility = $this->cityCareFacility();
+        $otherFacility = Facility::factory()->create(['is_active' => true]);
+        $otherPatient = Patient::factory()->create([
+            'facility_id' => $otherFacility->id,
+            'first_name' => 'Hidden',
+            'last_name' => 'Patient',
+            'medical_record_number' => 'OTHER-FACILITY-MRN',
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('patients.index', ['search' => $otherPatient->medical_record_number]))
+            ->assertOk()
+            ->assertDontSee('Hidden Patient');
+
+        $this->actingAs($staff)
+            ->getJson(route('patients.search', ['q' => 'Hidden']))
+            ->assertOk()
+            ->assertJsonPath('meta.count', 0)
+            ->assertJsonMissing(['id' => $otherPatient->id]);
+
+        $this->actingAs($staff)
+            ->post(route('patients.store'), [
+                'facility_id' => $otherFacility->id,
+                'first_name' => 'Forged',
+                'last_name' => 'Registration',
+                'country' => 'Uganda',
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('patients', [
+            'facility_id' => $otherFacility->id,
+            'first_name' => 'Forged',
+        ]);
+        $this->assertDatabaseHas('facilities', ['id' => $ownFacility->id]);
+    }
+
     private function cityCareFacility(): Facility
     {
         return Facility::query()->where('name', 'CityCare Medical Center')->where('is_active', true)->firstOrFail();
@@ -114,6 +153,13 @@ class PatientControllerTest extends TestCase
         ]);
 
         $user->roles()->attach(Role::where('slug', $roleSlug)->firstOrFail());
+        $department = Department::factory()->create(['facility_id' => $this->cityCareFacility()->id]);
+        StaffProfile::create([
+            'user_id' => $user->id,
+            'department_id' => $department->id,
+            'employee_number' => 'TEST-'.$user->id,
+            'employment_status' => 'active',
+        ]);
 
         return $user;
     }

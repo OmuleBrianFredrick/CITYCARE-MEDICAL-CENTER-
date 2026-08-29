@@ -5,15 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
 {
     use HasFactory;
 
     public const STATUS_SCHEDULED = 'scheduled';
+
     public const STATUS_CHECKED_IN = 'checked_in';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_NO_SHOW = 'no_show';
 
     protected $fillable = [
@@ -33,14 +38,53 @@ class Appointment extends Model
         ];
     }
 
-    public function facility(): BelongsTo { return $this->belongsTo(Facility::class); }
-    public function department(): BelongsTo { return $this->belongsTo(Department::class); }
-    public function servicePoint(): BelongsTo { return $this->belongsTo(ServicePoint::class); }
-    public function patient(): BelongsTo { return $this->belongsTo(Patient::class); }
-    public function provider(): BelongsTo { return $this->belongsTo(User::class, 'provider_id'); }
-    public function creator(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
+    }
 
-    public function isScheduled(): bool { return $this->status === self::STATUS_SCHEDULED; }
-    public function isCheckedIn(): bool { return $this->status === self::STATUS_CHECKED_IN; }
-    public function isCancelled(): bool { return $this->status === self::STATUS_CANCELLED; }
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function servicePoint(): BelongsTo
+    {
+        return $this->belongsTo(ServicePoint::class);
+    }
+
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
+    }
+
+    public function provider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'provider_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function clinicalEncounter(): HasOne
+    {
+        return $this->hasOne(ClinicalEncounter::class, 'appointment_id');
+    }
+
+    public function isScheduled(): bool
+    {
+        return $this->status === self::STATUS_SCHEDULED;
+    }
+
+    public function isCheckedIn(): bool
+    {
+        return $this->status === self::STATUS_CHECKED_IN;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
 }

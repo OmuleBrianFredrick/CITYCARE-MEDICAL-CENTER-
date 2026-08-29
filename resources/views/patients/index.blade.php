@@ -1,12 +1,79 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Patients · CityCare Medical Center</title>
+@extends('layouts.app')
+
+@section('title', 'Patient Registry · CityCare Medical Center')
+
+@push('styles')
 <style>
-:root{--navy:#082f49;--blue:#2563eb;--sky:#eff6ff;--cream:#f7fafc;--ink:#102a43;--muted:#627d98;--line:#d9e2ec;--yellow:#f4c430;--green:#15803d}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui;color:var(--ink);background:var(--cream)}.shell{min-height:100vh;display:grid;grid-template-columns:240px 1fr}aside{padding:28px 20px;background:linear-gradient(180deg,var(--navy),#0c4a6e);color:#fff}.brand{display:flex;gap:12px;align-items:center;margin-bottom:42px}.mark{width:42px;height:42px;border-radius:12px;background:#fff;color:var(--navy);display:grid;place-items:center;font-weight:900}.brand small{display:block;color:#bae6fd}nav{display:grid;gap:8px}nav a{color:#e0f2fe;text-decoration:none;padding:11px 12px;border-radius:10px}nav a:hover,nav a.active{background:rgba(255,255,255,.1);color:#fff}.logout{margin-top:35px;background:none;border:0;color:#fff;font-weight:800;cursor:pointer}main{padding:34px clamp(22px,4vw,56px);max-width:1450px;width:100%}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:26px}.eyebrow{color:var(--blue);font-size:.74rem;font-weight:900;letter-spacing:.14em}h1{margin:6px 0;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.05em}.muted{color:var(--muted);line-height:1.5}.btn{display:inline-block;border:0;border-radius:11px;padding:12px 16px;font-weight:850;text-decoration:none;cursor:pointer}.primary{background:var(--blue);color:#fff}.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 8px 28px rgba(16,42,67,.05)}.search{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:18px}input{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;font:inherit}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:14px 10px;border-bottom:1px solid #edf2f7;white-space:nowrap}th{font-size:.74rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.name{font-weight:850}.mrn{font-size:.75rem;color:var(--blue);font-weight:800}.badge{display:inline-block;padding:6px 9px;border-radius:999px;background:#ecfdf3;color:var(--green);font-size:.72rem;font-weight:850}.empty{padding:35px;text-align:center;color:var(--muted)}.pagination{margin-top:18px}@media(max-width:850px){.shell{grid-template-columns:1fr}aside{display:none}.top{flex-direction:column}.search{grid-template-columns:1fr}}
-</style></head>
-<body><div class="shell"><aside><div class="brand"><div class="mark">CC</div><div><strong>CityCare</strong><small>Medical Center</small></div></div><nav><a href="{{ route('dashboard') }}">Dashboard</a><a class="active" href="{{ route('patients.index') }}">Patients</a><a href="{{ route('organization.index') }}">Organization</a></nav><form method="POST" action="{{ route('logout') }}">@csrf<button class="logout">Sign out</button></form></aside><main>
-<div class="top"><div><div class="eyebrow">PATIENT MANAGEMENT</div><h1>Patient registry</h1><p class="muted">Search and access CityCare patient records securely from one operational workspace.</p></div>@if(auth()->user()->hasPermissionTo('patients.create'))<a class="btn primary" href="{{ route('patients.create') }}">+ Register patient</a>@endif</div>
-<div class="panel"><form class="search" method="GET" action="{{ route('patients.index') }}"><input name="search" value="{{ request('search') }}" placeholder="Search by name, MRN, phone or national ID…" autofocus><button class="btn primary">Search</button></form><div class="table-wrap"><table><thead><tr><th>Patient</th><th>MRN</th><th>Sex</th><th>Date of birth</th><th>Phone</th><th>Status</th><th></th></tr></thead><tbody>@forelse($patients as $patient)<tr><td><div class="name">{{ $patient->full_name }}</div><small class="muted">{{ $patient->email ?: 'No email recorded' }}</small></td><td><span class="mrn">{{ $patient->medical_record_number }}</span></td><td>{{ $patient->sex ?: '—' }}</td><td>{{ $patient->date_of_birth?->format('d M Y') ?: '—' }}</td><td>{{ $patient->phone ?: '—' }}</td><td><span class="badge">{{ ucfirst($patient->status) }}</span></td><td><a href="{{ route('patients.show', $patient) }}" style="color:var(--blue);font-weight:800;text-decoration:none">View →</a></td></tr>@empty<tr><td colspan="7"><div class="empty">No patients match your search.</div></td></tr>@endforelse</tbody></table></div><div class="pagination">{{ $patients->links() }}</div></div>
-</main></div></body></html>
+    .patient-page{padding:clamp(24px,4vw,42px)}.patient-heading{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:24px}.patient-eyebrow{margin:0 0 7px;color:var(--blue);font-size:.72rem;font-weight:850;letter-spacing:.14em}.patient-heading h1{margin:0;font-size:clamp(1.85rem,4vw,2.65rem);letter-spacing:-.045em}.patient-heading p{max-width:720px;margin:9px 0 0;color:var(--muted);line-height:1.55}.patient-actions{display:flex;gap:10px;flex-wrap:wrap}.patient-button{display:inline-flex;align-items:center;justify-content:center;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:.85rem;font-weight:800;text-decoration:none}.patient-button.primary{border-color:var(--blue);background:var(--blue);color:#fff}.registry-card{padding:20px}.registry-filter{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-bottom:18px}.registry-filter input{min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:10px}.registry-filter button{border:0;border-radius:10px;background:var(--blue);color:#fff;padding:11px 16px;font-weight:800;cursor:pointer}.registry-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px;color:var(--muted);font-size:.82rem}.registry-table{overflow:auto}.registry-table table{width:100%;border-collapse:collapse}.registry-table th,.registry-table td{padding:14px 10px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top}.registry-table th{color:var(--muted);font-size:.7rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}.patient-name{display:block;color:var(--ink);font-weight:850;text-decoration:none}.patient-name:hover{color:var(--blue)}.patient-detail{display:block;margin-top:3px;color:var(--muted);font-size:.78rem}.patient-mrn{color:var(--blue);font-size:.78rem;font-weight:850;white-space:nowrap}.patient-status{display:inline-block;padding:5px 8px;border-radius:999px;background:#ecfdf3;color:var(--green);font-size:.7rem;font-weight:850}.table-actions{display:flex;gap:7px;flex-wrap:wrap;min-width:155px}.table-action{color:var(--blue);font-size:.78rem;font-weight:800;text-decoration:none}.empty-state{padding:34px 18px;text-align:center;color:var(--muted)}.registry-pagination{margin-top:18px}@media(max-width:760px){.patient-page{padding:24px 18px}.patient-heading{flex-direction:column}.registry-filter{grid-template-columns:1fr}.registry-filter button{width:100%}}
+</style>
+@endpush
+
+@section('content')
+<section class="patient-page">
+    <div class="patient-heading">
+        <div>
+            <p class="patient-eyebrow">RECEPTION & PATIENT RECORDS</p>
+            <h1>Patient registry</h1>
+            <p>Find an existing medical record before registering a patient, then continue directly to scheduling, portal access, or permitted billing work.</p>
+        </div>
+        <div class="patient-actions">
+            @if (auth()->user()->hasPermissionTo('appointments.manage'))
+                <a class="patient-button" href="{{ route('appointments.index') }}">Appointment queue</a>
+            @endif
+            @if (auth()->user()->hasPermissionTo('patients.create'))
+                <a class="patient-button primary" href="{{ route('patients.create') }}">Register patient</a>
+            @endif
+        </div>
+    </div>
+
+    @if (session('status'))<div class="status" style="margin-bottom:18px">{{ session('status') }}</div>@endif
+    @if ($errors->any())<div class="error" style="margin-bottom:18px">{{ $errors->first() }}</div>@endif
+
+    <section class="card registry-card">
+        <form class="registry-filter" method="GET" action="{{ route('patients.index') }}">
+            <input name="search" value="{{ request('search') }}" placeholder="Search by name, MRN, phone, or national ID" aria-label="Search patient registry" autofocus>
+            <button type="submit">Search registry</button>
+        </form>
+
+        <div class="registry-meta">
+            <span>{{ $patients->total() }} {{ Str::plural('patient', $patients->total()) }} in {{ $facility->name }}</span>
+            @if (filled(request('search')))<a href="{{ route('patients.index') }}">Clear search</a>@endif
+        </div>
+
+        <div class="registry-table">
+            <table>
+                <thead><tr><th>Patient</th><th>MRN</th><th>Contact</th><th>Registered</th><th>Status</th><th>Workflow</th></tr></thead>
+                <tbody>
+                    @forelse ($patients as $patient)
+                        <tr>
+                            <td>
+                                <a class="patient-name" href="{{ route('patients.show', $patient) }}">{{ $patient->full_name }}</a>
+                                <span class="patient-detail">{{ $patient->sex ? ucfirst($patient->sex) : 'Sex not recorded' }} · {{ $patient->date_of_birth?->format('d M Y') ?: 'DOB not recorded' }}</span>
+                            </td>
+                            <td><span class="patient-mrn">{{ $patient->medical_record_number }}</span></td>
+                            <td>{{ $patient->phone ?: ($patient->email ?: 'No contact recorded') }}</td>
+                            <td>{{ $patient->registered_at?->format('d M Y') ?: '—' }}</td>
+                            <td><span class="patient-status">{{ ucfirst($patient->status) }}</span></td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="table-action" href="{{ route('patients.show', $patient) }}">Open record</a>
+                                    @if (auth()->user()->hasPermissionTo('appointments.manage') && $patient->isActive())
+                                        <a class="table-action" href="{{ route('appointments.create', ['patient_id' => $patient->id]) }}">Schedule</a>
+                                    @endif
+                                    @if (auth()->user()->hasPermissionTo('billing.view'))
+                                        <a class="table-action" href="{{ route('billing.show', $patient) }}">Billing</a>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td class="empty-state" colspan="6">No patients match this search. Register a new patient only after checking for an existing record.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="registry-pagination">{{ $patients->links() }}</div>
+    </section>
+</section>
+@endsection

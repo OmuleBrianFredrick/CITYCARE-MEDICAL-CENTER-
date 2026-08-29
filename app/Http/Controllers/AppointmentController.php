@@ -5,24 +5,28 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Models\Appointment;
 use App\Models\Department;
-use App\Models\Facility;
 use App\Models\Patient;
 use App\Models\User;
 use App\Services\AppointmentService;
+use App\Services\FacilityAccessService;
+use App\Services\PatientNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
-    public function __construct(private readonly AppointmentService $appointments)
-    {
-    }
+    public function __construct(
+        private readonly AppointmentService $appointments,
+        private readonly FacilityAccessService $facilityAccess,
+        private readonly PatientNotificationService $notifications,
+    ) {}
 
     public function index(Request $request): View
     {
+        $facility = $this->facilityAccess->currentFacility($request->user());
         $appointments = Appointment::query()
+            ->where('facility_id', $facility->id)
             ->with(['patient', 'department', 'servicePoint', 'provider'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('date'), fn ($query) => $query->whereDate('scheduled_start', $request->string('date')->toString()))
@@ -43,9 +47,9 @@ class AppointmentController extends Controller
         return view('appointments.index', compact('appointments'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $facility = Facility::query()->where('is_active', true)->orderBy('id')->firstOrFail();
+        $facility = $this->facilityAccess->currentFacility($request->user());
         $departments = Department::query()
             ->where('facility_id', $facility->id)
             ->where('is_active', true)
@@ -53,57 +57,54 @@ class AppointmentController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-        $patients = Patient::query()->where('facility_id', $facility->id)->where('status', Patient::STATUS_ACTIVE)->orderBy('first_name')->orderBy('last_name')->get();
-        $providers = User::query()->where('user_type', 'staff')->where('is_active', true)->orderBy('name')->get();
+        $selectedPatientId = old('patient_id', $request->input('patient_id'));
+        $selectedPatient = $selectedPatientId
+            ? Patient::query()
+                ->where('facility_id', $facility->id)
+                ->where('status', Patient::STATUS_ACTIVE)
+                ->find($selectedPatientId)
+            : null;
+        $providers = User::query()
+            ->where('user_type', 'staff')
+            ->where('is_active', true)
+            ->whereHas('staffProfile.department', fn ($query) => $query->where('facility_id', $facility->id))
+            ->orderBy('name')
+            ->get();
 
-        return view('appointments.create', compact('facility', 'departments', 'patients', 'providers'));
+        return view('appointments.create', compact('facility', 'departments', 'providers', 'selectedPatient'));
     }
 
     public function store(StoreAppointmentRequest $request): RedirectResponse
     {
-        $appointment = $this->appointments->create($request->appointmentData());
+        $data = $request->appointmentData();
+        $this->facilityAccess->assertFacilityAccessible($request->user(), (int) $data['facility_id']);
+        $appointment = $this->appointments->create($data);
+        $this->notifications->appointmentScheduled($appointment);
 
         return redirect()->route('appointments.index')->with('status', "Appointment {$appointment->appointment_number} scheduled successfully.");
     }
 
-    public function cancel(Appointment $appointment): RedirectResponse
+    public function cancel(Request $request, Appointment $appointment): RedirectResponse
     {
-        if (in_array($appointment->status, [Appointment::STATUS_CANCELLED, Appointment::STATUS_COMPLETED], true)) {
-            throw ValidationException::withMessages(['appointment' => 'This appointment cannot be cancelled in its current state.']);
-        }
-
-        $appointment->forceFill([
-            'status' => Appointment::STATUS_CANCELLED,
-            'cancelled_at' => now(),
-        ])->save();
+        $this->facilityAccess->assertFacilityAccessible($request->user(), $appointment->facility_id);
+        $appointment = $this->appointments->cancel($appointment);
+        $this->notifications->appointmentCancelled($appointment);
 
         return back()->with('status', "Appointment {$appointment->appointment_number} cancelled.");
     }
 
-    public function checkIn(Appointment $appointment): RedirectResponse
+    public function checkIn(Request $request, Appointment $appointment): RedirectResponse
     {
-        if ($appointment->status !== Appointment::STATUS_SCHEDULED) {
-            throw ValidationException::withMessages(['appointment' => 'Only scheduled appointments can be checked in.']);
-        }
-
-        $appointment->forceFill([
-            'status' => Appointment::STATUS_CHECKED_IN,
-            'checked_in_at' => now(),
-        ])->save();
+        $this->facilityAccess->assertFacilityAccessible($request->user(), $appointment->facility_id);
+        $appointment = $this->appointments->checkIn($appointment);
 
         return back()->with('status', "Appointment {$appointment->appointment_number} checked in.");
     }
 
-    public function complete(Appointment $appointment): RedirectResponse
+    public function complete(Request $request, Appointment $appointment): RedirectResponse
     {
-        if ($appointment->status !== Appointment::STATUS_CHECKED_IN) {
-            throw ValidationException::withMessages(['appointment' => 'Only checked-in appointments can be completed.']);
-        }
-
-        $appointment->forceFill([
-            'status' => Appointment::STATUS_COMPLETED,
-            'completed_at' => now(),
-        ])->save();
+        $this->facilityAccess->assertFacilityAccessible($request->user(), $appointment->facility_id);
+        $appointment = $this->appointments->complete($appointment);
 
         return back()->with('status', "Appointment {$appointment->appointment_number} completed.");
     }

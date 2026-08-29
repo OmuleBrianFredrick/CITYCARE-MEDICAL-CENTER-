@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditEvent;
+use App\Models\Invoice;
 use App\Models\ReportDefinition;
 use App\Models\ReportRun;
 use App\Models\User;
@@ -12,19 +13,36 @@ use Illuminate\Validation\ValidationException;
 
 class ReportingService
 {
+    public const FAILURE_MESSAGE = 'The report could not be generated. Please try again or contact support.';
+
+    public function __construct(private readonly ReportingAccessService $access) {}
+
     public function run(User $staff, ReportDefinition $definition, array $filters = [], ?int $facilityId = null): ReportRun
     {
         $this->assertActiveStaff($staff);
+        $this->access->assertDefinitionAccessible($staff, $definition);
 
         if (! $definition->is_active) {
             throw ValidationException::withMessages(['report' => 'The selected report is inactive.']);
         }
 
+        $filterFacilityId = isset($filters['facility_id']) ? (int) $filters['facility_id'] : null;
+
+        if ($facilityId !== null && $filterFacilityId !== null && $facilityId !== $filterFacilityId) {
+            throw ValidationException::withMessages([
+                'facility_id' => 'The selected facility does not match the requested reporting scope.',
+            ]);
+        }
+
+        $requestedFacilityId = $facilityId ?? $filterFacilityId;
+        unset($filters['facility_id']);
+
         $filters = $this->normalizeFilters($definition, $filters);
-        $facilityId ??= $filters['facility_id'] ?? null;
+        $facility = $this->access->resolveFacility($staff, $requestedFacilityId);
+        $facilityId = $facility?->id;
 
         if ($facilityId !== null) {
-            $filters['facility_id'] = (int) $facilityId;
+            $filters['facility_id'] = $facilityId;
         }
 
         $run = ReportRun::create([
@@ -48,34 +66,41 @@ class ReportingService
                 default => throw ValidationException::withMessages(['report' => 'Unsupported report definition.']),
             };
 
-            $run->update([
-                'status' => ReportRun::STATUS_COMPLETED,
-                'result_metadata' => $result,
-                'completed_at' => now(),
-            ]);
+            DB::transaction(function () use ($run, $result, $staff, $facilityId, $definition, $filters): void {
+                $run->update([
+                    'status' => ReportRun::STATUS_COMPLETED,
+                    'result_metadata' => $result,
+                    'completed_at' => now(),
+                ]);
 
-            AuditEvent::create([
-                'actor_id' => $staff->id,
-                'facility_id' => $facilityId,
-                'event_type' => 'report.run.completed',
-                'action' => 'completed',
-                'auditable_type' => ReportRun::class,
-                'auditable_id' => $run->id,
-                'before_values' => null,
-                'after_values' => ['report_definition_id' => $definition->id, 'filters' => $filters],
-                'context' => ['report_code' => $definition->code],
-                'occurred_at' => now(),
-            ]);
+                AuditEvent::create([
+                    'actor_id' => $staff->id,
+                    'facility_id' => $facilityId,
+                    'event_type' => 'report.run.completed',
+                    'action' => 'completed',
+                    'auditable_type' => ReportRun::class,
+                    'auditable_id' => $run->id,
+                    'before_values' => null,
+                    'after_values' => ['report_definition_id' => $definition->id, 'filters' => $filters],
+                    'context' => ['report_code' => $definition->code],
+                    'occurred_at' => now(),
+                ]);
+            });
 
             return $run->fresh();
         } catch (\Throwable $exception) {
             $run->update([
                 'status' => ReportRun::STATUS_FAILED,
-                'error_message' => $exception->getMessage(),
+                'result_metadata' => null,
+                'error_message' => self::FAILURE_MESSAGE,
                 'completed_at' => now(),
             ]);
 
-            throw $exception;
+            report($exception);
+
+            throw ValidationException::withMessages([
+                'report' => self::FAILURE_MESSAGE,
+            ]);
         }
     }
 
@@ -120,14 +145,20 @@ class ReportingService
         $query = DB::table('invoices');
         $this->applyDateAndFacility($query, $filters, 'created_at', 'facility_id');
 
-        $totals = $query->clone()->selectRaw('COALESCE(SUM(total),0) total, COALESCE(SUM(paid_amount),0) paid, COALESCE(SUM(balance_due),0) outstanding')->first();
+        $financialQuery = $query->clone()->whereIn('status', [
+            Invoice::STATUS_ISSUED,
+            Invoice::STATUS_PARTIALLY_PAID,
+            Invoice::STATUS_PAID,
+        ]);
+        $totals = $financialQuery->clone()->selectRaw('COALESCE(SUM(total),0) total, COALESCE(SUM(paid_amount),0) paid, COALESCE(SUM(balance_due),0) outstanding')->first();
 
         return [
             'report' => 'billing_summary',
-            'invoice_count' => (int) $query->count(),
+            'invoice_count' => (int) $financialQuery->count(),
             'total' => (float) $totals->total,
             'paid' => (float) $totals->paid,
             'outstanding' => (float) $totals->outstanding,
+            'by_status' => $query->clone()->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->orderBy('status')->pluck('total', 'status')->map(fn ($value) => (int) $value)->all(),
         ];
     }
 

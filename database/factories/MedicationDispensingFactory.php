@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\MedicationDispensing;
 use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/** @extends Factory<\App\Models\MedicationDispensing> */
+/** @extends Factory<MedicationDispensing> */
 class MedicationDispensingFactory extends Factory
 {
     public function definition(): array

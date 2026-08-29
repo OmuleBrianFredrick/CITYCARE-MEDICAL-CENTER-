@@ -6,7 +6,7 @@ use App\Models\ClinicalEncounter;
 use App\Models\Facility;
 use App\Models\Medication;
 use App\Models\Patient;
-use App\Models\Prescription;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\PharmacyService;
 use Database\Seeders\CityCareAccessSeeder;
@@ -95,7 +95,8 @@ class PharmacyInvalidStateTest extends TestCase
     private function userWithRole(string $roleSlug): User
     {
         $user = User::factory()->create(['user_type' => 'staff', 'is_active' => true]);
-        $user->roles()->attach(\App\Models\Role::where('slug', $roleSlug)->valueOrFail('id'));
+        $user->roles()->attach(Role::where('slug', $roleSlug)->valueOrFail('id'));
+
         return $user;
     }
 }
