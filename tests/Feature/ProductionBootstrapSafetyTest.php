@@ -14,7 +14,6 @@ use App\Models\SystemSetting;
 use App\Models\User;
 use Database\Seeders\CityCareDemoDataSeeder;
 use Database\Seeders\DatabaseSeeder;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -162,7 +161,7 @@ class ProductionBootstrapSafetyTest extends TestCase
         try {
             $migration->up();
             $this->fail('Reapplying a create migration to an existing schema should fail safely.');
-        } catch (QueryException) {
+        } catch (\LogicException) {
             $this->assertDatabaseHas('medications', [
                 'id' => $medication->id,
                 'name' => 'Protected Existing Medication',

@@ -4,10 +4,10 @@ This runbook covers a controlled single-node deployment and the additional requi
 
 ## 1. Runtime requirements
 
-- PHP 8.3 or newer with `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, and `xml`
+- PHP 8.3 or newer with `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pdo`, `pdo_pgsql`, `pgsql`, `session`, `tokenizer`, and `xml`
 - Composer 2
 - Node.js 22.13 through 22.x and npm 10.9 or newer for asset builds
-- MySQL 8-compatible database
+- PostgreSQL 17-compatible database (Supabase PostgreSQL is the production target)
 - A web server whose document root is the repository's `public` directory
 - Write access for the web/PHP process to `storage` and `bootstrap/cache`
 - HTTPS for every non-local deployment
@@ -24,12 +24,10 @@ APP_DEBUG=false
 APP_URL=https://citycare.example.org
 APP_TIMEZONE=Africa/Kampala
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=citycare_medical_center
-DB_USERNAME=citycare_application
-DB_PASSWORD=replace-with-a-secret
+DB_CONNECTION=pgsql
+DB_URL=postgres://postgres.PROJECT_REF:replace-with-a-secret@SESSION_POOLER_HOST:5432/postgres
+DB_SCHEMA=citycare
+DB_SSLMODE=require
 
 LOG_LEVEL=warning
 SESSION_ENCRYPT=true
@@ -49,7 +47,7 @@ The default `local` clinical-attachment disk stores protected referral documents
 
 ## 3. First deployment
 
-1. Create the database and a least-privilege application account.
+1. Create the PostgreSQL database and application role. For Supabase, copy the Session Pooler URI from **Connect**, not the transaction-pooler URI. Keep the connection URI only in the host's secret store or untracked `.env`.
 2. Install and build the release:
 
 ```bash
@@ -64,9 +62,10 @@ npm run build
 php artisan key:generate
 ```
 
-4. Apply migrations:
+4. Create and protect the private application schema, then apply migrations:
 
 ```bash
+php artisan citycare:database-prepare
 php artisan migrate --force
 ```
 
@@ -124,12 +123,12 @@ No CityCare job currently implements `ShouldQueue`; database notifications are w
 ## 6. Routine release procedure
 
 1. Confirm CI and the release commit.
-2. Back up the MySQL database and protected attachment storage.
+2. Back up the PostgreSQL database and protected attachment storage.
 3. Put the application in maintenance mode: `php artisan down --retry=60`.
 4. Deploy the immutable release files.
 5. Run `composer install --no-dev --prefer-dist --no-interaction --classmap-authoritative`.
 6. Run `npm ci --ignore-scripts --no-audit --no-fund && npm run build`, or publish the CI-built assets.
-7. Run `php artisan migrate --force`.
+7. Run `php artisan citycare:database-prepare` and `php artisan migrate --force`.
 8. Run `php artisan optimize` and restart PHP/queue processes as applicable.
 9. Run the smoke checks below.
 10. Bring the application back with `php artisan up`.
@@ -173,7 +172,7 @@ Run the manual scenarios in [UAT_CHECKLIST.md](UAT_CHECKLIST.md) before final si
 
 ## 8. Backup and rollback
 
-- Back up MySQL before every schema deployment and test restoration regularly.
+- Use Supabase managed backups where available and take a tested logical PostgreSQL backup before every schema deployment.
 - Back up the configured clinical-attachment disk together with the database so metadata and files remain consistent.
 - Retain the previous release artifact and its dependency locks.
 - If application code fails before a migration, redeploy the previous artifact and clear/rebuild caches.

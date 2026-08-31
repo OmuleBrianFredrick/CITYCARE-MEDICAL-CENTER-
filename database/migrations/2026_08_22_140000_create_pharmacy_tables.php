@@ -8,6 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
+        foreach ([
+            'medications',
+            'medication_formulations',
+            'prescriptions',
+            'prescription_items',
+            'medication_dispensings',
+            'medication_dispensing_items',
+        ] as $table) {
+            if (Schema::hasTable($table)) {
+                throw new LogicException("The pharmacy foundation cannot be applied because [{$table}] already exists.");
+            }
+        }
+
         Schema::create('medications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('facility_id')->constrained()->cascadeOnDelete();

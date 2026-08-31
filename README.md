@@ -8,7 +8,7 @@ The project was developed as a project-based academic submission and has been ta
 
 - Laravel 13.26.1
 - PHP 8.3+
-- MySQL 8-compatible database
+- PostgreSQL 17-compatible database (Supabase in production)
 - Node.js 22.13 through 22.x for reproducible frontend builds
 - Blade server-rendered UI
 - Laravel sessions, cache, queues, validation and middleware
@@ -149,7 +149,7 @@ Important integrity measures include:
 - Transactional operations for multi-step financial and inventory workflows
 - Row locking where concurrent updates could otherwise cause inconsistent state
 
-The local database used during development is `citycare_medical_center`.
+Production data is stored in a private PostgreSQL `citycare` schema. Supabase's `public` schema remains separate from the Laravel application tables and is not used by the browser client.
 
 ## 6. Models, Relationships and Business Logic
 
@@ -234,7 +234,7 @@ The historical main-branch hardening baseline was 252 passing tests and 953 asse
 - **0 failures**
 - **0 errors**
 
-GitHub Actions validates Composer metadata and advisories, npm advisories, Pint formatting, the frontend production build, a clean MySQL migration/seed, Laravel caches and scheduler discovery, and the full PHP suite on pushes and pull requests.
+GitHub Actions validates Composer metadata and advisories, npm advisories, Pint formatting, the frontend production build, a clean PostgreSQL migration/seed, Laravel caches and scheduler discovery, and the full PHP suite on pushes and pull requests.
 
 Automated tests establish the current regression baseline, but they do not replace browser-based usability and visual testing.
 
@@ -264,14 +264,19 @@ npm ci
 npm run build
 ```
 
-4. Create `.env` from `.env.example` and configure local database credentials. The example intentionally leaves `CITYCARE_ADMIN_EMAIL`, `CITYCARE_ADMIN_PASSWORD`, and `CITYCARE_TEST_PASSWORD` blank. For a first real deployment, the first two values can provision a one-time bootstrap administrator; remove them after verifying the account. `CITYCARE_TEST_PASSWORD` is strictly for local/testing demo seeders.
+4. Create `.env` from `.env.example` and configure PostgreSQL credentials. For Supabase, use the Session Pooler URI on port 5432, keep `DB_SCHEMA=citycare`, and keep `DB_SSLMODE=require`. The example intentionally leaves every database password and CityCare bootstrap/test password blank.
 5. Generate the application key:
 
 ```bash
 php artisan key:generate
 ```
 
-6. Create the MySQL database `citycare_medical_center`.
+6. Create or select a PostgreSQL database. For a first Supabase or local PostgreSQL setup, prepare the private application schema:
+
+```bash
+php artisan citycare:database-prepare
+```
+
 7. Run migrations. Run the base seeder once when provisioning roles, the organization foundation, and the optional bootstrap administrator:
 
 ```bash
@@ -311,7 +316,7 @@ php artisan test
 php artisan serve
 ```
 
-Production setup, scheduler, secure storage, backup, health, and rollback procedures are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+Supabase connection and provisioning are documented in [`docs/SUPABASE.md`](docs/SUPABASE.md). Production setup, scheduler, secure storage, backup, health, and rollback procedures are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## 15. Development and Submission Notes
 
@@ -326,4 +331,4 @@ Production setup, scheduler, secure storage, backup, health, and rollback proced
 
 **Current status: all production-plan application modules and role workspaces are implemented, facility-scoped and covered by automated regression tests; the protected appointment patient-search API/AJAX workflow, administration, patient portal, notifications, reporting, audit, and release pipeline are included.**
 
-Manual browser/user-journey acceptance is intentionally the remaining sign-off stage and will be performed using the supplied UAT checklist. GitHub Actions provides MySQL-backed clean-install and automated release verification on pushes and pull requests.
+Manual browser/user-journey acceptance is intentionally the remaining sign-off stage and will be performed using the supplied UAT checklist. GitHub Actions provides PostgreSQL-backed clean-install and automated release verification on pushes and pull requests.

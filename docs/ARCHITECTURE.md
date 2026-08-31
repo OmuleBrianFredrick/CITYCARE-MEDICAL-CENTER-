@@ -332,7 +332,7 @@ Notifications, queued work, external integrations, and reporting queries will ha
 
 ## 12. Database Strategy
 
-The application will use MySQL in the XAMPP local environment and production-compatible MySQL-compatible configuration.
+The application uses PostgreSQL locally and in CI, with Supabase PostgreSQL as the production database. Laravel owns authentication and data access through a server-side PostgreSQL connection. Application tables live in the private `citycare` schema; Supabase's Data API and browser-facing `public` schema are not used for clinical or operational records.
 
 Database implementation will be staged:
 
@@ -378,7 +378,7 @@ GitHub Actions will run the reliable automated test suite and quality checks tha
 
 The project will proceed in controlled phases:
 
-1. **Foundation** — Laravel, GitHub, environment, MySQL, storage, baseline tests.
+1. **Foundation** — Laravel, GitHub, environment, PostgreSQL/Supabase, storage, baseline tests.
 2. **Identity and Security** — users, roles, permissions, authentication, audit foundation.
 3. **Organization** — facility, departments, service points, staff administration.
 4. **Patient Management** — registration, profiles, identifiers, search.
@@ -427,8 +427,8 @@ A module is complete when:
 - Laravel foundation pushed to `main`
 - CityCare application identity configured
 - Africa/Kampala timezone configured
-- MySQL configured
-- `citycare_medical_center` database connected
+- PostgreSQL and Supabase-ready configuration implemented
+- private `citycare` schema preparation implemented
 - framework migrations executed
 - public storage link created
 

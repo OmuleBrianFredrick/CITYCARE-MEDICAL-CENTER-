@@ -60,7 +60,7 @@ class LaboratoryOrderServiceTest extends TestCase
         $encounter = ClinicalEncounter::factory()->create();
         $tests = LaboratoryTest::factory()->count(2)->create(['facility_id' => $encounter->facility_id, 'is_active' => true]);
         $order = $service->create($encounter, $staff, ['test_ids' => $tests->pluck('id')->all()]);
-        $first = $order->items()->first();
+        $first = $order->items()->oldest('id')->first();
         $second = $order->items()->latest('id')->first();
 
         $service->recordResult($first, $staff, ['result_value' => 'Negative']);
